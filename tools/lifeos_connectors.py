@@ -10,6 +10,7 @@ from typing import Any
 
 from lifeos_archive import archive_summary
 from lifeos_audit import log_event
+from lifeos_events import events_summary
 from lifeos_policy import policy_summary
 
 from lifeos_paths import APP_ROOT, VAULT_ROOT
@@ -214,6 +215,7 @@ def main() -> int:
     actions = action_queue_section()
     archive = archive_summary()
     crm = crm_section()
+    events = events_summary()
     data = {
         "generatedAt": datetime.now().isoformat(timespec="seconds"),
         "gmail": gmail,
@@ -224,6 +226,7 @@ def main() -> int:
         "actions": actions,
         "archive": archive,
         "crm": crm,
+        "events": events,
         "policy": {"configured": True, "rules": policy_summary(), "status": "Read auto; drafts staged; send/post/delete/payment require approval."},
         "telegram": {"configured": True, "status": "Telegram bridge is active for this pi session; message history is not exported to dashboard yet."},
         "cursor": {"configured": False, "status": "Cursor Agent installed; run `agent login` to authenticate."},
@@ -240,6 +243,7 @@ def main() -> int:
         github_configured=github.get("configured"),
         pending_actions=len(actions.get("items") or []),
         archive_records=archive.get("count", 0),
+        events=len(events.get("items") or []),
     )
     print(path)
     return 0

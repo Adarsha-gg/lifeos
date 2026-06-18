@@ -45,6 +45,7 @@ def local_ip() -> str:
 
 def refresh() -> None:
     run([sys.executable, "tools/daily_brief.py"])
+    run([sys.executable, "tools/lifeos_events.py", "refresh"])
     run([sys.executable, "tools/lifeos_connectors.py"])
     run([sys.executable, "tools/lifeos_archive.py", "sync"])
     run([sys.executable, "tools/lifeos_connectors.py"])

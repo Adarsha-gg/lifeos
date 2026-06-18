@@ -200,6 +200,27 @@ def crm_panel(conn: dict) -> str:
     return "<ul>" + "".join(chunks) + f"</ul><div class='actions'><a class='action' href='{SERVER_URL}/data/lifeos/crm.json'>CRM JSON</a></div>"
 
 
+def events_panel(conn: dict) -> str:
+    items = conn.get("items") or []
+    if not items:
+        return "<p class='muted'>No web3 events queued.</p>"
+    rows = []
+    for event in items[:5]:
+        if not isinstance(event, dict):
+            continue
+        title = html.escape(str(event.get("title") or "Untitled event"))
+        url = html.escape(str(event.get("url") or ""))
+        date = html.escape(str(event.get("date") or "TBD"))
+        kind = html.escape(str(event.get("kind") or "event").upper())
+        location = html.escape(str(event.get("location") or ""))
+        why = inline_html(str(event.get("why") or ""))
+        score = html.escape(str(event.get("score") or ""))
+        title_html = f"<a class='inline-link' href='{url}' target='_blank' rel='noreferrer'>{title}</a>" if url else title
+        rows.append(f"<li><span class='tag'>{kind}</span> <strong>{title_html}</strong><br><span class='muted'>{date} · {location} · score {score}</span><br><span class='muted'>{why}</span></li>")
+    report = conn.get("report") or "output/reports/web3-events-nyc-nj.md"
+    return "<ul>" + "".join(rows) + f"</ul><div class='actions'><a class='action' href='{SERVER_URL}/{html.escape(str(report))}'>Open Events Brief</a></div>"
+
+
 def github_panel(conn: dict) -> str:
     if not conn.get("configured"):
         return f"<p class='muted'>{html.escape(conn.get('error') or 'GitHub not connected.')}</p>"
@@ -323,6 +344,7 @@ def main() -> int:
     actions_conn = connectors.get("actions", {})
     archive_conn = connectors.get("archive", {})
     crm_conn = connectors.get("crm", {})
+    events_conn = connectors.get("events", {})
     policy_conn = connectors.get("policy", {})
     cursor_conn = connectors.get("cursor", {})
     gemini_conn = connectors.get("gemini", {})
@@ -409,13 +431,13 @@ code { color:var(--warn); background:rgba(215,255,57,.08); border:1px solid rgba
   </section>
   <section class='row'>
     <div class='card'><h2>Morning Research <span class='badge'>learn</span></h2>{research_html}</div>
-    <div class='card'><h2>Email Command Center</h2>{email_panel(email_conn)}</div>
+    <div class='card'><h2>Web3 Events <span class='badge'>NYC/NJ</span></h2>{events_panel(events_conn)}</div>
     <div class='card'><h2>People CRM <span class='badge'>outreach</span></h2>{crm_panel(crm_conn)}</div>
   </section>
   <section class='row'>
     <div class='card'><h2>Calendar</h2>{connector_list(calendar_conn, 'No upcoming events found.')}</div>
+    <div class='card'><h2>Email Command Center</h2>{email_panel(email_conn)}</div>
     <div class='card'><h2>GitHub</h2>{github_panel(github_conn)}</div>
-    <div class='card'><h2>Learning Queue</h2>{research_html}</div>
   </section>
   <section class='row'>
     <div class='card'><h2>Research Inbox <span class='badge'>capture</span></h2>{research_inbox_html}<form method='post' action='{SERVER_URL}/research/capture' class='add-form'><input name='text' placeholder='Paste paper/link/tweet/topic...' autocomplete='off'><input type='hidden' name='kind' value='source'><button title='Capture research'>+</button></form><div class='actions'><a class='action' href='{SERVER_URL}/raw/research/inbox.md'>Open Inbox</a></div></div>
