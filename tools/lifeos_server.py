@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 import socket
 import subprocess
@@ -11,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from lifeos_actions import load as load_actions
 from lifeos_actions import update_status
 from lifeos_audit import log_event
 from lifeos_todos import add as add_structured_todo
@@ -122,6 +124,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if parsed.path == "/health":
+            checks = {
+                "server": True,
+                "vault": ROOT.exists(),
+                "todos": (ROOT / "data" / "lifeos" / "todos.json").exists(),
+                "dashboard": DASHBOARD.exists(),
+                "research_inbox": RESEARCH_INBOX.exists(),
+                "actions_queue": isinstance(load_actions().get("actions"), list),
+            }
+            body = (json.dumps({"ok": all(checks.values()), "checks": checks}, indent=2) + "\n").encode()
+            self.send_response(200 if all(checks.values()) else 500)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/phone":
             ip = local_ip()
             url = f"http://{ip}:{PORT}"
