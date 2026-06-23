@@ -221,6 +221,25 @@ def events_panel(conn: dict) -> str:
     return "<ul>" + "".join(rows) + f"</ul><div class='actions'><a class='action' href='{SERVER_URL}/{html.escape(str(report))}'>Open Events Brief</a></div>"
 
 
+def web_digest_panel(conn: dict) -> str:
+    items = conn.get("items") or []
+    if not items:
+        message = conn.get("error") or conn.get("status") or "No web digest items yet."
+        return f"<p class='muted'>{html.escape(str(message))}</p>"
+    rows = []
+    for item in items[:7]:
+        if not isinstance(item, dict):
+            continue
+        title = linked_item(item)
+        source = html.escape(str(item.get("source") or "web"))
+        score = html.escape(str(item.get("score") or ""))
+        why = html.escape(str(item.get("why") or ""))
+        rows.append(f"<li><span class='tag'>{source}</span> <strong>{title}</strong><br><span class='muted'>score {score} · {why}</span></li>")
+    report = conn.get("report") or "output/reports/lifeos-web-digest.md"
+    source_count = len(conn.get("sources") or [])
+    return "<ul>" + "".join(rows) + f"</ul><div class='actions'><a class='action' href='{SERVER_URL}/{html.escape(str(report))}'>Open Web Digest</a><span class='muted'>{source_count} source(s)</span></div>"
+
+
 def github_panel(conn: dict) -> str:
     if not conn.get("configured"):
         return f"<p class='muted'>{html.escape(conn.get('error') or 'GitHub not connected.')}</p>"
@@ -345,6 +364,7 @@ def main() -> int:
     archive_conn = connectors.get("archive", {})
     crm_conn = connectors.get("crm", {})
     events_conn = connectors.get("events", {})
+    web_digest_conn = connectors.get("web_digest", {})
     policy_conn = connectors.get("policy", {})
     cursor_conn = connectors.get("cursor", {})
     gemini_conn = connectors.get("gemini", {})
@@ -430,7 +450,7 @@ code { color:var(--warn); background:rgba(215,255,57,.08); border:1px solid rgba
     <div class='card big'><h2>Todos <span class='badge'>next actions</span></h2>{todo_panel(todos)}</div>
   </section>
   <section class='row'>
-    <div class='card'><h2>Morning Research <span class='badge'>learn</span></h2>{research_html}</div>
+    <div class='card'><h2>Web Digest <span class='badge'>read first</span></h2>{web_digest_panel(web_digest_conn)}<div class='mini'><h3>Saved Research</h3>{research_html}</div></div>
     <div class='card'><h2>Web3 Events <span class='badge'>NYC/NJ</span></h2>{events_panel(events_conn)}</div>
     <div class='card'><h2>People CRM <span class='badge'>outreach</span></h2>{crm_panel(crm_conn)}</div>
   </section>
@@ -450,7 +470,7 @@ code { color:var(--warn); background:rgba(215,255,57,.08); border:1px solid rgba
     <div class='card'><h2>Action Policy</h2>{policy_panel(policy_conn)}<p class='muted'>No social feeds. No destructive/outbound actions without explicit approval.</p></div>
   </section>
   <section class='row'>
-    <div class='card'><h2>Tools / Agents</h2><ul>{tool_status('Gmail', gmail_conn)}{tool_status('Outlook', connectors.get('outlook', {}))}{tool_status('Calendar', calendar_conn)}{tool_status('GitHub', github_conn)}{tool_status('Telegram', telegram_conn)}{tool_status('Cursor Agent', cursor_conn)}{tool_status('Gemini Worker', gemini_conn)}<li><span class='tool-state'>ONLINE</span> Approval staging — write actions queue before execution.</li><li><span class='tool-state'>ONLINE</span> Voice transcription — local faster-whisper ready.</li></ul></div>
+    <div class='card'><h2>Tools / Agents</h2><ul>{tool_status('Gmail', gmail_conn)}{tool_status('Outlook', connectors.get('outlook', {}))}{tool_status('Calendar', calendar_conn)}{tool_status('GitHub', github_conn)}{tool_status('Telegram', telegram_conn)}{tool_status('Cursor Agent', cursor_conn)}{tool_status('Gemini Worker', gemini_conn)}<li><span class='tool-state'>ONLINE</span> Web digest — read-only ranked web/RSS fetch.</li><li><span class='tool-state'>ONLINE</span> Approval staging — write actions queue before execution.</li><li><span class='tool-state'>ONLINE</span> Voice transcription — local faster-whisper ready.</li></ul></div>
   </section>
   <div class='footer'>Generated from {html.escape(str(brief_path.relative_to(ROOT)) if brief_path else 'no brief')} at {datetime.now().strftime('%H:%M:%S')}.</div>
 </main>
@@ -539,6 +559,7 @@ setInterval(tickFocus, 1000);
         "lifeos_dashboard",
         brief=str(brief_path.relative_to(ROOT)) if brief_path else "",
         pending_actions=len(actions_conn.get("items") or []),
+        web_digest_items=len(web_digest_conn.get("items") or []),
     )
     print(out)
     return 0

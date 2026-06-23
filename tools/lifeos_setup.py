@@ -41,8 +41,12 @@ def checkbox(done: bool) -> str:
 
 def build_steps() -> list[dict[str, Any]]:
     conn = read_json(CONNECTORS, {})
-    code, out, err = run(["python", "tools/check_lifeos_agents.py"])
-    agents = json.loads(out) if code in (0, 1) and out.startswith("{") else {}
+    agents_check = APP_ROOT / "tools" / "check_lifeos_agents.py"
+    if agents_check.exists():
+        code, out, err = run(["python", "tools/check_lifeos_agents.py"])
+        agents = json.loads(out) if code in (0, 1) and out.startswith("{") else {}
+    else:
+        agents = {}
     return [
         {
             "id": "gmail",

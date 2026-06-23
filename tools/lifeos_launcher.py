@@ -8,7 +8,7 @@ from pathlib import Path
 from lifeos_paths import APP_ROOT, VAULT_ROOT
 
 ROOT = VAULT_ROOT
-OPEN_SCRIPT = ROOT / "tools" / "open_lifeos_dashboard.ps1"
+OPEN_SCRIPT = APP_ROOT / "tools" / "open_lifeos_dashboard.ps1"
 
 
 def launch_lifeos() -> None:
@@ -19,7 +19,7 @@ def launch_lifeos() -> None:
         "Bypass",
         "-File",
         str(OPEN_SCRIPT),
-    ], cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    ], cwd=str(APP_ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def main() -> int:

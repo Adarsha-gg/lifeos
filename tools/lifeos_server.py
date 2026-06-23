@@ -11,6 +11,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from typing import Any
 
 from lifeos_actions import load as load_actions
 from lifeos_actions import update_status
@@ -23,13 +24,32 @@ from lifeos_paths import APP_ROOT, VAULT_ROOT
 ROOT = VAULT_ROOT
 JOURNAL = ROOT / "wiki" / "personal" / "done-journal.md"
 RESEARCH_INBOX = ROOT / "raw" / "research" / "inbox.md"
-DASHBOARD = ROOT / "output" / "lifeos-dashboard.html"
+OUT = ROOT / "output"
+DASHBOARD = OUT / "lifeos-dashboard.html"
+REFRESH_STATUS = OUT / "lifeos-refresh.json"
 HOST = os.environ.get("LIFEOS_HOST", "127.0.0.1")
 PORT = 8787
 
 
-def run(cmd: list[str]) -> None:
-    subprocess.run(cmd, cwd=APP_ROOT, check=False, text=True, capture_output=True)
+def run(cmd: list[str], timeout: int = 90) -> dict[str, Any]:
+    started = datetime.now().isoformat(timespec="seconds")
+    try:
+        proc = subprocess.run(cmd, cwd=APP_ROOT, check=False, text=True, capture_output=True, timeout=timeout)
+        return {
+            "cmd": cmd,
+            "started_at": started,
+            "returncode": proc.returncode,
+            "stdout": proc.stdout.strip()[-3000:],
+            "stderr": proc.stderr.strip()[-3000:],
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "cmd": cmd,
+            "started_at": started,
+            "returncode": 124,
+            "stdout": (exc.stdout or "")[-3000:] if isinstance(exc.stdout, str) else "",
+            "stderr": "timeout",
+        }
 
 
 def local_ip() -> str:
@@ -43,14 +63,26 @@ def local_ip() -> str:
         return "127.0.0.1"
 
 
-def refresh() -> None:
-    run([sys.executable, "tools/daily_brief.py"])
-    run([sys.executable, "tools/lifeos_events.py", "refresh"])
-    run([sys.executable, "tools/lifeos_connectors.py"])
-    run([sys.executable, "tools/lifeos_archive.py", "sync"])
-    run([sys.executable, "tools/lifeos_connectors.py"])
-    run([sys.executable, "tools/lifeos_setup.py"])
-    run([sys.executable, "tools/lifeos_dashboard.py"])
+def refresh() -> dict[str, Any]:
+    OUT.mkdir(parents=True, exist_ok=True)
+    steps = [
+        run([sys.executable, "tools/lifeos_web_digest.py", "refresh"]),
+        run([sys.executable, "tools/lifeos_events.py", "refresh"]),
+        run([sys.executable, "tools/lifeos_connectors.py"]),
+        run([sys.executable, "tools/lifeos_archive.py", "sync"]),
+        run([sys.executable, "tools/lifeos_connectors.py"]),
+        run([sys.executable, "tools/daily_brief.py"]),
+        run([sys.executable, "tools/lifeos_setup.py"]),
+        run([sys.executable, "tools/lifeos_dashboard.py"]),
+    ]
+    payload = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "ok": all(step["returncode"] == 0 for step in steps),
+        "steps": steps,
+    }
+    REFRESH_STATUS.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    log_event("server_refresh", "lifeos_server", ok=payload["ok"], failed_steps=[s["cmd"] for s in steps if s["returncode"] != 0])
+    return payload
 
 
 def ensure_journal() -> None:
@@ -107,10 +139,42 @@ def capture_research(text: str, kind: str = "source") -> bool:
 
 
 class Handler(BaseHTTPRequestHandler):
+    MUTATION_PATHS = {
+        "/todo/complete",
+        "/todo/add",
+        "/crm/stage",
+        "/actions/approve",
+        "/actions/reject",
+        "/research/capture",
+        "/research/capture-api",
+    }
+
+    def is_loopback_client(self) -> bool:
+        host = self.client_address[0] if self.client_address else ""
+        return host in {"127.0.0.1", "::1", "localhost"} or host.startswith("127.")
+
+    def mutation_allowed(self, data: dict[str, list[str]]) -> bool:
+        if HOST in {"127.0.0.1", "localhost", "::1"} or self.is_loopback_client():
+            return True
+        token = os.environ.get("LIFEOS_WRITE_TOKEN", "")
+        if not token:
+            return False
+        supplied = data.get("token", [""])[0] or self.headers.get("X-LifeOS-Write-Token", "")
+        return supplied == token
+
+    def reject_mutation(self) -> None:
+        body = b"Mutation blocked. LAN writes require LIFEOS_WRITE_TOKEN."
+        self.send_response(403)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_cors()
+        self.end_headers()
+        self.wfile.write(body)
+
     def send_cors(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-LifeOS-Write-Token")
 
     def redirect_home(self) -> None:
         self.send_response(303)
@@ -133,6 +197,7 @@ class Handler(BaseHTTPRequestHandler):
                 "dashboard": DASHBOARD.exists(),
                 "research_inbox": RESEARCH_INBOX.exists(),
                 "actions_queue": isinstance(load_actions().get("actions"), list),
+                "refresh_status": REFRESH_STATUS.exists(),
             }
             body = (json.dumps({"ok": all(checks.values()), "checks": checks}, indent=2) + "\n").encode()
             self.send_response(200 if all(checks.values()) else 500)
@@ -152,7 +217,15 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if parsed.path in ("/", "/dashboard"):
-            refresh()
+            refresh_result = refresh()
+            if not refresh_result.get("ok") or not DASHBOARD.exists():
+                body = (json.dumps(refresh_result, indent=2) + "\n").encode()
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             body = DASHBOARD.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -198,6 +271,9 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         data = parse_qs(self.rfile.read(length).decode("utf-8"))
         parsed = urlparse(self.path)
+        if parsed.path in self.MUTATION_PATHS and not self.mutation_allowed(data):
+            self.reject_mutation()
+            return
         if parsed.path == "/todo/complete":
             complete_todo(data.get("id", [""])[0])
             self.redirect_home()

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from pathlib import Path
 
 from lifeos_todos import open_items
+from lifeos_web_digest import web_digest_summary
 
 from lifeos_paths import APP_ROOT, VAULT_ROOT
 
@@ -16,6 +18,33 @@ OUT = ROOT / "output" / "reports"
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def read_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except Exception:
+        return {}
+
+
+def item_text(item: object) -> str:
+    if isinstance(item, str):
+        return item
+    if not isinstance(item, dict):
+        return str(item)
+    for key in ("summary", "subject", "title", "name", "workflowName", "url"):
+        value = item.get(key)
+        if value:
+            return str(value)
+    return str(item)
+
+
+def item_link(item: object) -> str:
+    if not isinstance(item, dict):
+        return item_text(item)
+    text = item_text(item)
+    url = item.get("url") or item.get("html_url") or item.get("web_url")
+    return f"[{text}]({url})" if url else text
 
 
 def extract_tasks() -> list[str]:
@@ -51,6 +80,8 @@ def main() -> int:
     scored_tasks = linked_tasks(tasks, priorities)
     top_tasks = [task for task, _ in scored_tasks[:8]]
     goal_linked = [(task, score) for task, score in scored_tasks if score > 0][:6]
+    web_digest = web_digest_summary(6)
+    connectors = read_json(ROOT / "output" / "lifeos-connectors.json")
 
     priority_body = priorities.split('##', 1)[1].strip() if '##' in priorities else '_No priorities page found._'
     priority_body = re.sub(r"^## ", "### ", priority_body, flags=re.M)
@@ -78,19 +109,78 @@ Source: `wiki/personal/current-priorities.md`
     else:
         body += "_No todos currently match `wiki/personal/current-priorities.md` keywords._\n"
 
+    body += "\n## Web Digest\n\n"
+    web_items = web_digest.get("items") or []
+    if web_items:
+        for item in web_items:
+            title = item.get("title") or "Untitled"
+            url = item.get("url") or ""
+            source = item.get("source") or "web"
+            score = item.get("score") or 0
+            why = item.get("why") or "Matched morning web digest."
+            link = f"[{title}]({url})" if url else title
+            body += f"- score {score}: {link} — {source}. {why}\n"
+        report = web_digest.get("report")
+        if report:
+            body += f"\nFull digest: `{report}`\n"
+    else:
+        status = web_digest.get("error") or web_digest.get("status") or "No web digest items yet."
+        body += f"_{status}_\n"
+
+    body += "\n## Calendar\n\n"
+    calendar = connectors.get("calendar", {})
+    if calendar.get("configured"):
+        items = calendar.get("items") or []
+        if items:
+            for item in items[:8]:
+                body += f"- {item_link(item)}\n"
+        else:
+            body += "_Calendar connected. No upcoming events found._\n"
+    else:
+        body += f"_{calendar.get('error') or 'Not connected yet. Authenticate a read-only calendar connector.'}_\n"
+
+    body += "\n## Important Email\n\n"
+    email = connectors.get("email", {})
+    if email.get("configured"):
+        categories = email.get("categories") or {}
+        for category in ["Priority Inbox", "Needs Reply", "LinkedIn Signals", "Receipts / Security"]:
+            rows = categories.get(category) or []
+            body += f"### {category}\n"
+            if rows:
+                for item in rows[:5]:
+                    provider = item.get("provider", "EMAIL") if isinstance(item, dict) else "EMAIL"
+                    body += f"- [{provider}] {item_link(item)}\n"
+            else:
+                body += "_Clear._\n"
+    else:
+        providers = email.get("providers") or {}
+        statuses = [str((providers.get(name) or {}).get("status") or "") for name in ["gmail", "outlook"]]
+        message = "; ".join(s for s in statuses if s) or "Not connected yet. Add read-only email connectors."
+        body += f"_{message}_\n"
+
+    body += "\n## GitHub / Project Signals\n\n"
+    github = connectors.get("github", {})
+    if github.get("configured"):
+        cats = github.get("categories") or {}
+        any_rows = False
+        for category in ["Assigned Issues", "PRs Needing Review", "Failed Workflows"]:
+            rows = cats.get(category) or []
+            if not rows:
+                continue
+            any_rows = True
+            body += f"### {category}\n"
+            for item in rows[:5]:
+                body += f"- {item_link(item)}\n"
+        if not any_rows:
+            body += "_GitHub connected. No assigned issues, review requests, or failed workflows._\n"
+    else:
+        body += f"_{github.get('error') or 'GitHub not connected.'}_\n"
+
+    body += "\n## Social / Texts\n\n"
+    telegram = connectors.get("telegram", {})
+    body += f"_{telegram.get('status') or 'Not connected yet. Keep this action-only: DMs, mentions, and messages requiring a reply — not feeds.'}_\n"
+
     body += """
-## Calendar
-
-_Not connected yet._ Choose and authenticate a read-only calendar connector.
-
-## Important Email
-
-_Not connected yet._ Add a read-only email connector and an importance filter before surfacing email here.
-
-## Social / Texts
-
-_Not connected yet._ Keep this action-only: DMs, mentions, and messages requiring a reply — not feeds.
-
 ## Health Defaults
 
 - Do posture/neck reset before long computer sessions.

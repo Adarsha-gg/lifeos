@@ -13,7 +13,7 @@ from lifeos_paths import VAULT_ROOT
 DATA = VAULT_ROOT / "data" / "lifeos"
 EVENTS_JSON = DATA / "events.json"
 REPORT = VAULT_ROOT / "output" / "reports" / "web3-events-nyc-nj.md"
-TODAY = date(2026, 6, 18)
+TODAY = date.today()
 
 # Curated from live web search/fetch on 2026-06-18.
 # Rule: no events/hackathons with dates or submission deadlines before TODAY.
@@ -177,7 +177,7 @@ def save_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "radius": "NYC / North Jersey / remote Web3 hackathons",
         "items": sorted(future_events, key=lambda e: (-int(e.get("score", 0)), str(e.get("deadline", "9999-99-99")))),
         "source_links": SOURCE_LINKS,
-        "rule": "Only include events with event date or submission deadline on/after 2026-06-18.",
+        "rule": f"Only include events with event date or submission deadline on/after {TODAY.isoformat()}.",
     }
     EVENTS_JSON.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     write_report(payload)
@@ -193,7 +193,7 @@ def write_report(payload: dict[str, Any]) -> None:
         f"Generated: {payload.get('generated_at')}",
         f"As of: {payload.get('as_of')}",
         "Home base: Wayne, NJ",
-        "Rule: no event/deadline before 2026-06-18.",
+        f"Rule: no event/deadline before {payload.get('as_of')}.",
         "",
         "## Best Bets",
         "",

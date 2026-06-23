@@ -12,6 +12,7 @@ from lifeos_archive import archive_summary
 from lifeos_audit import log_event
 from lifeos_events import events_summary
 from lifeos_policy import policy_summary
+from lifeos_web_digest import web_digest_summary
 
 from lifeos_paths import APP_ROOT, VAULT_ROOT
 
@@ -216,6 +217,7 @@ def main() -> int:
     archive = archive_summary()
     crm = crm_section()
     events = events_summary()
+    web_digest = web_digest_summary(8)
     data = {
         "generatedAt": datetime.now().isoformat(timespec="seconds"),
         "gmail": gmail,
@@ -227,6 +229,7 @@ def main() -> int:
         "archive": archive,
         "crm": crm,
         "events": events,
+        "web_digest": web_digest,
         "policy": {"configured": True, "rules": policy_summary(), "status": "Read auto; drafts staged; send/post/delete/payment require approval."},
         "telegram": {"configured": True, "status": "Telegram bridge is active for this pi session; message history is not exported to dashboard yet."},
         "cursor": {"configured": False, "status": "Cursor Agent installed; run `agent login` to authenticate."},
@@ -244,6 +247,7 @@ def main() -> int:
         pending_actions=len(actions.get("items") or []),
         archive_records=archive.get("count", 0),
         events=len(events.get("items") or []),
+        web_digest_items=len(web_digest.get("items") or []),
     )
     print(path)
     return 0

@@ -39,7 +39,7 @@ def stage(args: argparse.Namespace) -> int:
     }
     cmd = [
         sys.executable,
-        str(ROOT / "tools" / "lifeos_actions.py"),
+        str(APP_ROOT / "tools" / "lifeos_actions.py"),
         "propose",
         "--source", "crm",
         "--action", f"draft_{args.channel}_outreach",

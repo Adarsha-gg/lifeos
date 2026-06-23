@@ -70,6 +70,13 @@ def connector_records() -> list[dict[str, Any]]:
             title = item_text(item)
             raw = {"category": category, "item": item}
             records.append(record("gmail", stable_id("gmail", raw), title, title, raw=raw, tags=[category]))
+    web_digest = data.get("web_digest", {}) if isinstance(data, dict) else {}
+    for item in web_digest.get("items") or []:
+        title = str(item.get("title") or item_text(item)) if isinstance(item, dict) else item_text(item)
+        text = str(item.get("summary") or title) if isinstance(item, dict) else title
+        url = item.get("url") if isinstance(item, dict) else ""
+        tags = item.get("matched_keywords", []) if isinstance(item, dict) else []
+        records.append(record("web_digest", stable_id("web_digest", item), title, text, url=url, raw=item, tags=tags))
     return records
 
 
