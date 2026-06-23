@@ -19,6 +19,12 @@ from lifeos_paths import APP_ROOT, VAULT_ROOT
 ROOT = VAULT_ROOT
 OUT = ROOT / "output"
 DEFAULT_EMAIL = os.environ.get("LIFEOS_GOOGLE_EMAIL", "adarshamishra33@gmail.com")
+GOOGLE_CLIENT_PATHS = [
+    Path(os.environ["LIFEOS_GOOGLE_OAUTH_CLIENT"]).expanduser() if os.environ.get("LIFEOS_GOOGLE_OAUTH_CLIENT") else None,
+    Path.home() / "secrets" / "google-oauth-client.json",
+    Path.home() / ".gmcli" / "credentials.json",
+    Path.home() / ".gccli" / "credentials.json",
+]
 CRM_PATH = ROOT / "data" / "lifeos" / "crm.json"
 
 
@@ -37,6 +43,62 @@ def parse_json(text: str, fallback: Any) -> Any:
         return json.loads(text) if text else fallback
     except Exception:
         return fallback
+
+
+def first_existing(paths: list[Path | None]) -> Path | None:
+    for path in paths:
+        if path and path.exists():
+            return path
+    return None
+
+
+def google_oauth_section() -> dict[str, Any]:
+    path = first_existing(GOOGLE_CLIENT_PATHS)
+    return {
+        "configured": bool(path),
+        "path": str(path) if path else "",
+        "status": "Google OAuth client credentials found." if path else "Missing Google OAuth desktop client JSON; Gmail and Calendar cannot authenticate yet.",
+    }
+
+
+def command_section(command: str, args: list[str], missing_status: str) -> dict[str, Any]:
+    code, out, err = run([command, *args])
+    text = out or err
+    return {
+        "configured": code == 0,
+        "status": text.splitlines()[0] if text else ("Configured." if code == 0 else missing_status),
+        "error": "" if code == 0 else (text or missing_status),
+    }
+
+
+def cursor_section() -> dict[str, Any]:
+    agent_script = Path.home() / ".pi" / "agent" / "bin" / "agent"
+    if agent_script.exists():
+        code, out, err = run(["bash", "-lc", "agent status"])
+        text = out or err
+        return {
+            "configured": code == 0,
+            "status": text.splitlines()[0] if text else "Cursor Agent wrapper found.",
+            "error": "" if code == 0 else (text or "Run `agent login`."),
+        }
+    return command_section("agent", ["status"], "Cursor Agent not logged in. Run `agent login`.")
+
+
+def gemini_section() -> dict[str, Any]:
+    if os.environ.get("GEMINI_API_KEY"):
+        return {"configured": True, "status": "GEMINI_API_KEY is set.", "error": ""}
+    return command_section("gemini", ["--version"], "Install Gemini CLI or set GEMINI_API_KEY.")
+
+
+def personal_suite_section() -> dict[str, Any]:
+    candidates = [Path.home() / ".codex" / "config.toml", Path.home() / ".config" / "codex" / "config.toml"]
+    for path in candidates:
+        try:
+            if path.exists() and "mcp-personal-suite" in path.read_text(encoding="utf-8", errors="ignore"):
+                return {"configured": True, "status": f"Configured in {path}", "error": ""}
+        except Exception:
+            continue
+    return {"configured": False, "status": "Not configured. Run `npx mcp-personal-suite setup` if you want the Codex MCP suite.", "error": ""}
 
 
 def google_accounts(tool: str) -> list[str]:
@@ -213,6 +275,7 @@ def main() -> int:
     email = email_command_center(gmail, outlook)
     calendar = calendar_section(DEFAULT_EMAIL)
     github = github_section()
+    google_oauth = google_oauth_section()
     actions = action_queue_section()
     archive = archive_summary()
     crm = crm_section()
@@ -225,6 +288,7 @@ def main() -> int:
         "email": email,
         "calendar": calendar,
         "github": github,
+        "google_oauth": google_oauth,
         "actions": actions,
         "archive": archive,
         "crm": crm,
@@ -232,8 +296,9 @@ def main() -> int:
         "web_digest": web_digest,
         "policy": {"configured": True, "rules": policy_summary(), "status": "Read auto; drafts staged; send/post/delete/payment require approval."},
         "telegram": {"configured": True, "status": "Telegram bridge is active for this pi session; message history is not exported to dashboard yet."},
-        "cursor": {"configured": False, "status": "Cursor Agent installed; run `agent login` to authenticate."},
-        "gemini": {"configured": bool(os.environ.get("GEMINI_API_KEY")), "status": "Set GEMINI_API_KEY or Gemini settings to enable persistent workers."},
+        "cursor": cursor_section(),
+        "gemini": gemini_section(),
+        "personal_suite": personal_suite_section(),
     }
     path = OUT / "lifeos-connectors.json"
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")

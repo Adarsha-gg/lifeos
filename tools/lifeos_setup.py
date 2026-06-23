@@ -41,47 +41,64 @@ def checkbox(done: bool) -> str:
 
 def build_steps() -> list[dict[str, Any]]:
     conn = read_json(CONNECTORS, {})
-    agents_check = APP_ROOT / "tools" / "check_lifeos_agents.py"
-    if agents_check.exists():
-        code, out, err = run(["python", "tools/check_lifeos_agents.py"])
-        agents = json.loads(out) if code in (0, 1) and out.startswith("{") else {}
-    else:
-        agents = {}
+    google_oauth = conn.get("google_oauth") or {}
+    gmail = conn.get("gmail") or {}
+    calendar = conn.get("calendar") or {}
+    github = conn.get("github") or {}
+    cursor = conn.get("cursor") or {}
+    gemini = conn.get("gemini") or {}
+    personal_suite = conn.get("personal_suite") or {}
+    oauth_path = google_oauth.get("path") or r"C:\Users\adars\secrets\google-oauth-client.json"
+    email = gmail.get("email") or calendar.get("email") or "adarshamishra33@gmail.com"
     return [
+        {
+            "id": "google-oauth",
+            "title": "Create Google OAuth desktop client JSON",
+            "done": bool(google_oauth.get("configured")),
+            "command": rf"Save a Desktop OAuth client with Gmail API + Google Calendar API enabled to {oauth_path}",
+            "why": google_oauth.get("status") or "Required before Gmail/Calendar account login can work.",
+        },
         {
             "id": "gmail",
             "title": "Connect Gmail",
-            "done": bool((conn.get("gmail") or {}).get("configured")),
-            "command": "gmcli accounts credentials C:\\Users\\adars\\secrets\\google-oauth-client.json && gmcli accounts add adarshamishra33@gmail.com",
-            "why": "Populates Priority Inbox, Needs Reply, LinkedIn Signals, Receipts/Security.",
+            "done": bool(gmail.get("configured")),
+            "command": rf"gmcli accounts credentials {oauth_path} && gmcli accounts add {email}",
+            "why": gmail.get("error") or "Populates Priority Inbox, Needs Reply, LinkedIn Signals, Receipts/Security.",
         },
         {
             "id": "calendar",
             "title": "Connect Google Calendar",
-            "done": bool((conn.get("calendar") or {}).get("configured")),
-            "command": "gccli accounts credentials C:\\Users\\adars\\secrets\\google-oauth-client.json && gccli accounts add adarshamishra33@gmail.com",
-            "why": "Populates today/tomorrow events and enables future AI Plan calendar staging.",
+            "done": bool(calendar.get("configured")),
+            "command": rf"gccli accounts credentials {oauth_path} && gccli accounts add {email}",
+            "why": calendar.get("error") or "Populates today/tomorrow events and enables future AI Plan calendar staging.",
+        },
+        {
+            "id": "github",
+            "title": "GitHub CLI auth",
+            "done": bool(github.get("configured")),
+            "command": "gh auth login && gh auth status",
+            "why": github.get("status") or github.get("error") or "Pulls assigned issues, review requests, and failed workflows.",
         },
         {
             "id": "personal-suite",
             "title": "Run mcp-personal-suite setup",
-            "done": bool((agents.get("codex_config") or {}).get("configured")),
+            "done": bool(personal_suite.get("configured")),
             "command": "npx mcp-personal-suite setup",
-            "why": "Gives Codex a local-first connector suite for email/calendar/messaging/search.",
+            "why": personal_suite.get("status") or "Gives Codex a local-first connector suite for email/calendar/messaging/search.",
         },
         {
             "id": "cursor",
             "title": "Log into Cursor Agent",
-            "done": bool((agents.get("cursor") or {}).get("logged_in")),
+            "done": bool(cursor.get("configured")),
             "command": "agent login && agent status",
-            "why": "Enables worker delegation through tools/cursor_worker.py.",
+            "why": cursor.get("status") or cursor.get("error") or "Enables worker delegation.",
         },
         {
             "id": "gemini",
             "title": "Configure Gemini worker",
-            "done": bool((agents.get("gemini") or {}).get("configured")),
-            "command": "set GEMINI_API_KEY=...  # or configure C:\\Users\\adars\\.gemini\\settings.json",
-            "why": "Enables persistent Gemini worker tasks.",
+            "done": bool(gemini.get("configured")),
+            "command": "set GEMINI_API_KEY=...  # or install/login Gemini CLI",
+            "why": gemini.get("status") or gemini.get("error") or "Enables persistent Gemini worker tasks.",
         },
         {
             "id": "archive",
