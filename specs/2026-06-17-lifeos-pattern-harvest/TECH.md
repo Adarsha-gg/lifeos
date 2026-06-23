@@ -2,7 +2,7 @@
 
 ## Current Context
 
-LifeOS currently lives inside `C:/Users/adars/adarsha-knowledge-base`.
+LifeOS app/tooling now lives inside `C:/Users/adars/Coding/lifeos`; its default vault lives at `C:/Users/adars/Coding/knowledgebase`.
 
 Relevant files:
 

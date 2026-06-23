@@ -10,7 +10,7 @@ Captures the current Brave tab into the local LifeOS Research Inbox.
 4. Select this folder:
 
 ```text
-C:\Users\adars\adarsha-knowledge-base\tools\brave-lifeos-capture-extension
+C:\Users\adars\Coding\lifeos\tools\brave-lifeos-capture-extension
 ```
 
 ## Use

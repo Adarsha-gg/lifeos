@@ -5,7 +5,7 @@ Local-first personal command center app for Adar.
 This repo contains the app/tools. The personal vault stays separate at:
 
 ```text
-C:\Users\adars\adarsha-knowledge-base
+C:\Users\adars\Coding\knowledgebase
 ```
 
 By default scripts read/write that vault. Override with:
