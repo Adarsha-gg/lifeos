@@ -225,10 +225,11 @@ html,body{height:100%;overflow:hidden;background:#0a0d14;color:#f3ecd9;font-fami
 #hint{left:50%;transform:translateX(-50%);bottom:92px;font:600 13.5px/1.3 system-ui;color:#e9dcc0;max-width:84vw;text-align:center}
 #status{left:50%;transform:translateX(-50%);bottom:138px;font:800 15px/1 system-ui;text-align:center;opacity:0;transition:opacity .3s;white-space:nowrap}
 #status.show{opacity:1}
-#dock{left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:96vw}
-.act{font:700 14px/1.1 system-ui;color:#f3ecd9;background:rgba(224,168,81,.16);border:1px solid rgba(224,168,81,.4);border-radius:13px;padding:12px 14px;cursor:pointer;text-align:center}
+#dock{position:fixed;left:0;right:0;bottom:14px;display:flex;gap:7px;justify-content:center;padding:0 10px;z-index:12}
+.act{flex:1;min-width:0;max-width:150px;font:800 13.5px/1.15 system-ui;color:#1a1206;background:#e0a851;border:1px solid #f3d49a;border-radius:12px;padding:12px 3px;cursor:pointer;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.45)}
 .act:active{transform:scale(.95)}
-.act small{display:block;font:600 11px system-ui;color:#c9b48c;margin-top:3px}
+.act:disabled{opacity:.45}
+.act small{display:block;font:700 10px system-ui;color:#5a4416;margin-top:2px}
 #modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,6,10,.72);padding:24px;z-index:20}
 #modal.show{display:flex}
 #card{max-width:420px;background:#15110a;border:1px solid rgba(224,168,81,.4);border-radius:20px;padding:26px}
@@ -243,9 +244,9 @@ html,body{height:100%;overflow:hidden;background:#0a0d14;color:#f3ecd9;font-fami
 <div id='hint' class='panel'></div>
 <div id='dock'>
   <button class='act' id='b_forage'>🌿 Forage<small>safe food</small></button>
-  <button class='act' id='b_farm'>🌾 Farm<small>+farmland</small></button>
-  <button class='act' id='b_build'>🏠 Build<small>5 📦 → homes</small></button>
-  <button class='act' id='b_spec'>👤 Specialist<small>6 📦 → 📜</small></button>
+  <button class='act' id='b_farm'>🌾 Crops<small>+farmland</small></button>
+  <button class='act' id='b_build'>🏠 Build<small>5📦 home</small></button>
+  <button class='act' id='b_spec'>👤 Scholar<small>6📦 → 📜</small></button>
 </div>
 <div id='modal'><div id='card'><h2 id='m_t'></h2><p id='m_b'></p><button id='m_c'>Continue</button></div></div>
 """

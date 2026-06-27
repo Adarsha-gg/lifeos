@@ -31,9 +31,14 @@ from typing import Any
 from lifeos_paths import APP_ROOT, VAULT_ROOT
 
 try:  # playable WebGL games surfaced alongside the lessons
-    from lifeos_games import GAMES as GAME_CATALOG
+    from lifeos_games import GAMES as _GAMES
 except Exception:
-    GAME_CATALOG = []
+    _GAMES = []
+try:  # spec-driven arcade drills (the generalizable learning-game system)
+    from lifeos_arcade import ARCADE as _DRILLS
+except Exception:
+    _DRILLS = []
+GAME_CATALOG = list(_GAMES) + list(_DRILLS)
 
 OUT = VAULT_ROOT / "output" / "learn"
 IMG_CACHE = APP_ROOT / ".cache" / "lesson-images"
