@@ -18,6 +18,7 @@ from lifeos_actions import update_status
 from lifeos_audit import log_event
 from lifeos_todos import add as add_structured_todo
 from lifeos_todos import complete as complete_structured_todo
+from lifeos_todos import open_items as open_todos
 
 from lifeos_paths import APP_ROOT, VAULT_ROOT
 
@@ -138,6 +139,121 @@ def capture_research(text: str, kind: str = "source") -> bool:
     return True
 
 
+def state_payload() -> dict[str, Any]:
+    """Lightweight JSON snapshot for the phone control panel (no full refresh)."""
+    actions = [a for a in load_actions().get("actions", []) if a.get("status") == "pending"]
+    slim_actions = [
+        {
+            "id": a.get("id"),
+            "title": a.get("title") or a.get("action") or "Action",
+            "purpose": a.get("purpose") or "",
+            "preview": a.get("preview") or "",
+            "risk_level": a.get("risk_level") or "medium",
+            "source": a.get("source") or "",
+        }
+        for a in actions
+    ]
+    return {
+        "ok": True,
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "todos": open_todos(),
+        "actions": slim_actions,
+    }
+
+
+MOBILE_HTML = """<!doctype html><html lang='en'><head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='color-scheme' content='dark'>
+<title>LifeOS Control</title>
+<style>
+:root{--bg:#020403;--card:#0a140f;--line:#143025;--fg:#d7ffe8;--accent:#39ff88;--cyan:#00f5ff;--muted:#6f9a85}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);margin:0;padding:16px 16px 64px;max-width:640px;margin:0 auto}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;position:sticky;top:0;background:var(--bg);padding:8px 0 12px;z-index:5}
+h1{font-size:20px;margin:0}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:24px 0 8px}
+#status{font-size:12px;color:var(--accent);min-height:14px}
+section{margin-bottom:8px}
+form{display:flex;gap:8px}
+input,select,button,textarea{font:inherit;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:12px}
+input,textarea{flex:1;min-width:0}
+button{background:var(--accent);color:#021008;border:none;font-weight:700;cursor:pointer}
+button.ghost{background:var(--card);color:var(--fg);border:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.row .done{flex:none;width:44px;height:44px;border-radius:50%;font-size:18px;background:transparent;border:2px solid var(--accent);color:var(--accent)}
+.row small{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.card small{display:block;color:var(--muted);margin:4px 0 10px}
+.risk{font-size:11px;text-transform:uppercase;color:var(--cyan);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:6px}
+.btns{display:flex;gap:8px}
+.btns .reject{background:#2a0f12;color:#ff8a8a}
+.empty{color:var(--muted);font-style:italic}
+details summary{color:var(--muted);cursor:pointer;font-size:12px;margin-bottom:8px}
+#tokrow{margin-top:8px}
+#refresh{width:100%;margin-top:24px}
+</style></head><body>
+<header><h1>LifeOS <small style='font-size:11px;color:var(--muted)'>control</small></h1><a href='/learn' style='font-size:13px;color:var(--accent);text-decoration:none'>🌅 Learn</a><span id='status'></span></header>
+
+<section><form id='addform'>
+  <input id='addtext' placeholder='Add a todo…' enterkeyhint='done' autocomplete='off'>
+  <select id='addsection'><option>Today</option><option>Soon</option><option>Parking Lot</option></select>
+  <button>Add</button>
+</form></section>
+
+<section><form id='capform'>
+  <input id='captext' placeholder='Capture research…' enterkeyhint='done' autocomplete='off'>
+  <button>Save</button>
+</form></section>
+
+<details><summary>LAN write token (set once per device)</summary>
+<form id='tokrow'><input id='tok' placeholder='LIFEOS_WRITE_TOKEN' autocomplete='off'><button class='ghost' id='savetok' type='button'>Save</button></form>
+</details>
+
+<h2>Todos</h2><div id='todos'></div>
+<h2>Pending actions</h2><div id='actions'></div>
+<button class='ghost' id='refresh'>↻ Reload</button>
+
+<script>
+const $=s=>document.querySelector(s);
+const tok=()=>localStorage.getItem('lifeos_tok')||'';
+function esc(s){const e=document.createElement('div');e.textContent=s==null?'':String(s);return e.innerHTML;}
+function flash(m){$('#status').textContent=m;setTimeout(()=>{$('#status').textContent='';},1600);}
+async function post(path,data){
+  const body=new URLSearchParams(data);const t=tok();if(t)body.set('token',t);
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-LifeOS-Write-Token':t},body});
+  if(r.status===403){flash('Blocked: set write token');return null;}
+  return r;
+}
+function renderTodos(items){
+  $('#todos').innerHTML=items.length?items.map(i=>
+    `<div class='row'><button class='done' data-id='${esc(i.id)}'>✓</button><div><div>${esc(i.text)}</div><small>${esc(i.section)}</small></div></div>`
+  ).join(''):"<p class='empty'>All clear 🎉</p>";
+}
+function renderActions(items){
+  $('#actions').innerHTML=items.length?items.map(a=>
+    `<div class='card'><div><b>${esc(a.title)}</b><span class='risk'>${esc(a.risk_level)}</span></div><small>${esc(a.preview||a.purpose)}</small><div class='btns'><button class='approve' data-id='${esc(a.id)}'>Approve</button><button class='reject' data-id='${esc(a.id)}'>Reject</button></div></div>`
+  ).join(''):"<p class='empty'>No pending actions</p>";
+}
+async function load(){
+  try{const d=await (await fetch('/api/state')).json();renderTodos(d.todos||[]);renderActions(d.actions||[]);flash('updated '+new Date().toLocaleTimeString());}
+  catch(e){flash('offline');}
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b||!b.dataset.id)return;const id=b.dataset.id;
+  if(b.classList.contains('done')){b.textContent='…';if(await post('/api/todo/complete',{id}))load();}
+  else if(b.classList.contains('approve')){if(await post('/api/actions/approve',{id}))load();}
+  else if(b.classList.contains('reject')){if(confirm('Reject this action?')&&await post('/api/actions/reject',{id}))load();}
+});
+$('#addform').onsubmit=async e=>{e.preventDefault();const t=$('#addtext').value.trim();if(!t)return;if(await post('/api/todo/add',{text:t,section:$('#addsection').value})){$('#addtext').value='';load();}};
+$('#capform').onsubmit=async e=>{e.preventDefault();const t=$('#captext').value.trim();if(!t)return;if(await post('/research/capture-api',{text:t,kind:'source'})){$('#captext').value='';flash('Captured');}};
+$('#refresh').onclick=load;
+$('#tok').value=tok();
+$('#savetok').onclick=()=>{localStorage.setItem('lifeos_tok',$('#tok').value.trim());flash('Token saved');};
+load();
+</script></body></html>"""
+
+
 class Handler(BaseHTTPRequestHandler):
     MUTATION_PATHS = {
         "/todo/complete",
@@ -147,6 +263,10 @@ class Handler(BaseHTTPRequestHandler):
         "/actions/reject",
         "/research/capture",
         "/research/capture-api",
+        "/api/todo/complete",
+        "/api/todo/add",
+        "/api/actions/approve",
+        "/api/actions/reject",
     }
 
     def is_loopback_client(self) -> bool:
@@ -182,6 +302,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_cors()
         self.end_headers()
 
+    def send_json(self, payload: Any, code: int = 200) -> None:
+        body = (json.dumps(payload, default=str) + "\n").encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_cors()
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(204)
         self.send_cors()
@@ -206,10 +335,33 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if parsed.path == "/api/state":
+            self.send_json(state_payload())
+            return
+        if parsed.path in ("/learn", "/learn/"):
+            index = OUT / "learn" / "index.html"
+            if not index.exists():
+                run([sys.executable, "tools/lifeos_lessons.py", "build"], timeout=60)
+            if index.exists():
+                body = index.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+        if parsed.path in ("/m", "/mobile", "/control"):
+            body = MOBILE_HTML.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/phone":
             ip = local_ip()
             url = f"http://{ip}:{PORT}"
-            body = f"""<!doctype html><meta charset='utf-8'><title>LifeOS Phone Access</title><body style='font-family:system-ui;background:#020403;color:#d7ffe8;padding:32px'><h1>LifeOS Phone Access</h1><p>Start the server in LAN mode, then open this URL on your phone while on the same Wi-Fi:</p><p style='font-size:24px'><a style='color:#39ff88' href='{url}'>{url}</a></p><p>If it does not load, Windows Firewall is blocking Python or the server was started local-only.</p><p><a style='color:#00f5ff' href='/'>Dashboard</a></p></body>""".encode()
+            body = f"""<!doctype html><meta charset='utf-8'><title>LifeOS Phone Access</title><body style='font-family:system-ui;background:#020403;color:#d7ffe8;padding:32px'><h1>LifeOS Phone Access</h1><p>Start the server in LAN mode, then open this URL on your phone while on the same Wi-Fi:</p><p style='font-size:24px'><a style='color:#39ff88' href='{url}/m'>{url}/m</a></p><p>The <b>/m</b> control panel lets you complete todos, add todos, capture research, and approve/reject actions from your phone.</p><p>If it does not load, Windows Firewall is blocking Python or the server was started local-only.</p><p><a style='color:#00f5ff' href='/m'>Open control panel</a> &middot; <a style='color:#00f5ff' href='/'>Dashboard</a></p></body>""".encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -307,6 +459,22 @@ class Handler(BaseHTTPRequestHandler):
             self.send_cors()
             self.end_headers()
             self.wfile.write(body)
+            return
+        if parsed.path == "/api/todo/complete":
+            ok = complete_todo(data.get("id", [""])[0])
+            self.send_json({"ok": ok}, 200 if ok else 400)
+            return
+        if parsed.path == "/api/todo/add":
+            ok = add_todo(data.get("text", [""])[0], data.get("section", ["Today"])[0])
+            self.send_json({"ok": ok}, 200 if ok else 400)
+            return
+        if parsed.path == "/api/actions/approve":
+            rc = update_status(data.get("id", [""])[0], "approved", "phone")
+            self.send_json({"ok": rc == 0, "code": rc}, 200 if rc == 0 else 400)
+            return
+        if parsed.path == "/api/actions/reject":
+            rc = update_status(data.get("id", [""])[0], "rejected", "phone")
+            self.send_json({"ok": rc == 0, "code": rc}, 200 if rc == 0 else 400)
             return
         self.send_response(404)
         self.end_headers()
