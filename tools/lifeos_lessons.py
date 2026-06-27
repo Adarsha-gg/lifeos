@@ -39,6 +39,8 @@ try:  # spec-driven arcade drills (the generalizable learning-game system)
 except Exception:
     _DRILLS = []
 GAME_CATALOG = list(_GAMES) + list(_DRILLS)
+# Reverse map: which game reinforces which lesson (game is played AFTER the lesson).
+GAME_FOR_LESSON = {g["pairs"]: g for g in GAME_CATALOG if g.get("pairs")}
 
 OUT = VAULT_ROOT / "output" / "learn"
 IMG_CACHE = APP_ROOT / ".cache" / "lesson-images"
@@ -718,6 +720,11 @@ p{margin:0 0 16px;font-size:18px}
 .foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-family:system-ui;color:var(--muted);font-size:15px}
 .foot a{color:var(--accent)}
 .pill{display:inline-block;font:700 12px/1 system-ui;color:#04140b;background:var(--accent);border-radius:999px;padding:6px 11px}
+.playcta{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--fg);border:1px solid var(--c,#46d17a);border-radius:18px;padding:18px;margin:24px 0 4px;background:linear-gradient(110deg,color-mix(in srgb,var(--c,#46d17a) 16%,transparent),var(--card))}
+.playcta .pc_k{font:800 12px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--c,#46d17a)}
+.playcta .pc_t{font:800 21px/1.1 system-ui;margin:6px 0 3px}
+.playcta .pc_s{font:600 14px/1.3 system-ui;color:var(--muted)}
+.playcta .pc_go{margin-left:auto;font-size:24px;color:var(--c,#46d17a)}
 /* --- playable games --- */
 .pd-scores,.monty-stats{display:flex;gap:18px;font:700 15px/1 system-ui;margin:4px 0 12px;flex-wrap:wrap}
 .pd-scores b,.monty-stats b{color:var(--accent)}
@@ -931,6 +938,21 @@ def _hero_html(lesson: dict) -> str:
     return f"<div class='herowrap'>{_svg_hero(lesson['accent'], lesson['emoji'])}</div>"
 
 
+def _play_cta(lesson_id: str) -> str:
+    """End-of-lesson call to action: now that you've learned it, play to lock it in."""
+    g = GAME_FOR_LESSON.get(lesson_id)
+    if not g:
+        return ""
+    url = g.get("url") or f"/output/learn/{g['id']}.html"
+    return (
+        f"<a class='playcta' href='{esc(url)}' style='--c:{g['accent']}'>"
+        f"<div class='pc_txt'><div class='pc_k'>🎮 You've learned it — now lock it in</div>"
+        f"<div class='pc_t'>Play {esc(g['emoji'])} {esc(g['title'])}</div>"
+        f"<div class='pc_s'>Reinforce it through play — beats scrolling the feed.</div></div>"
+        f"<div class='pc_go'>▶</div></a>"
+    )
+
+
 def render_lesson(lesson: dict[str, Any], day: str) -> str:
     accent = lesson["accent"]
     src_label, src_url = lesson["source"]
@@ -953,6 +975,7 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 {_ideas_html(lesson['ideas'])}
 {_game_html(lesson['game'])}
 <div class='reveal'><button>💡 Did you know? Tap to reveal</button><div class='txt'>{lesson['did_you_know']}</div></div>
+{_play_cta(lesson['id'])}
 <div class='foot'>
 <p><span class='pill'>Go deeper</span> &nbsp; Primary source: <a href='{esc(src_url)}' target='_blank' rel='noopener'>{src_label}</a></p>
 <p>{esc(lesson.get('next',''))}</p>
@@ -1002,7 +1025,12 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
             f"<div class='gblurb'>{esc(g['blurb'])}</div></div></a>"
             for g in GAME_CATALOG
         )
-        games_html = f"<h2 style='margin-top:30px'>🎮 Play to learn</h2><div class='games'>{gcards}</div>"
+        games_html = (
+            "<h2 style='margin-top:34px'>🎮 Replay arcade</h2>"
+            "<p class='intro' style='font-size:15px;margin-bottom:4px'>Already learned these? "
+            "Drop in and play to keep them sharp.</p>"
+            f"<div class='games'>{gcards}</div>"
+        )
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
@@ -1028,10 +1056,10 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
 <div class='topbar'><span>🌅 LifeOS Learn</span><a href='/m'>Control →</a></div>
 <div class='kicker'>{esc(day)}</div>
 <h1>Learn something this morning</h1>
-<p class='intro'>Short, beautifully readable lessons with real photos, plus real games you play to learn. Pick one instead of the feed.</p>
-{games_html}
+<p class='intro'>Read a short lesson instead of the feed — each ends with a game to lock in what you just learned.</p>
 {''.join(cards)}
 {browse}
+{games_html}
 <div class='foot'><p>A fresh set is featured every morning by LifeOS. Every lesson works offline once it loads.</p></div>
 </div></body></html>"""
 

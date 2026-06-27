@@ -48,7 +48,7 @@ GAMES = [
         "title": "Orbit",
         "blurb": "Fling a probe around a star and feel how gravity really works — "
                  "too slow you fall in, too fast you escape, just right you orbit.",
-        "pairs": "why-the-sky-is-blue",
+        # no matching lesson yet — lives in the replay arcade until a gravity lesson exists
     },
 ]
 
