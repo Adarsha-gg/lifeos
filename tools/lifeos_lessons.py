@@ -30,6 +30,11 @@ from typing import Any
 
 from lifeos_paths import APP_ROOT, VAULT_ROOT
 
+try:  # playable WebGL games surfaced alongside the lessons
+    from lifeos_games import GAMES as GAME_CATALOG
+except Exception:
+    GAME_CATALOG = []
+
 OUT = VAULT_ROOT / "output" / "learn"
 IMG_CACHE = APP_ROOT / ".cache" / "lesson-images"
 UA = "LifeOS-personal-learning/1.0 (personal morning lessons app)"
@@ -983,6 +988,16 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
     )
     browse = (f"<h2 style='margin-top:34px'>Browse all {len(library)} lessons</h2>"
               f"<div class='browse'>{rows}</div>") if others else ""
+    games_html = ""
+    if GAME_CATALOG:
+        gcards = "".join(
+            f"<a class='gcard' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}' style='--c:{g['accent']}'>"
+            f"<div class='gemoji'>{esc(g['emoji'])}</div><div class='gtext'>"
+            f"<div class='gtitle'>{esc(g['title'])} <span class='gbadge'>PLAY</span></div>"
+            f"<div class='gblurb'>{esc(g['blurb'])}</div></div></a>"
+            for g in GAME_CATALOG
+        )
+        games_html = f"<h2 style='margin-top:30px'>🎮 Play to learn</h2><div class='games'>{gcards}</div>"
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
@@ -998,11 +1013,18 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
 .intro{{color:var(--muted);font-size:18px}}
 .browse .lrow{{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:11px 14px;margin:8px 0;background:var(--card)}}
 .browse .le{{font-size:24px}} .browse .lt{{flex:1;font:600 17px system-ui}} .browse .lm{{color:var(--muted);font:600 13px system-ui}}
+.gcard{{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--fg);border:1px solid var(--c);border-radius:18px;padding:16px;margin:12px 0;background:linear-gradient(110deg,rgba(108,198,255,.10),var(--card));transition:.15s}}
+.gcard:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(108,198,255,.12)}}
+.gemoji{{font-size:40px;line-height:1}}
+.gtitle{{font:800 21px/1 system-ui;display:flex;align-items:center;gap:10px}}
+.gbadge{{font:800 10px/1 system-ui;letter-spacing:.12em;color:#04140b;background:var(--c);border-radius:6px;padding:4px 7px}}
+.gblurb{{color:var(--muted);font-size:16px;margin-top:5px;font-family:system-ui}}
 </style></head><body><div class='wrap'>
 <div class='topbar'><span>🌅 LifeOS Learn</span><a href='/m'>Control →</a></div>
 <div class='kicker'>{esc(day)}</div>
 <h1>Learn something this morning</h1>
-<p class='intro'>Short, beautifully readable lessons with real photos — and a real game to play at the end of each. Pick one instead of the feed.</p>
+<p class='intro'>Short, beautifully readable lessons with real photos, plus real games you play to learn. Pick one instead of the feed.</p>
+{games_html}
 {''.join(cards)}
 {browse}
 <div class='foot'><p>A fresh set is featured every morning by LifeOS. Every lesson works offline once it loads.</p></div>
