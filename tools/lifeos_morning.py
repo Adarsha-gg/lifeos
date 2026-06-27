@@ -26,6 +26,7 @@ PIPELINE = [
     [sys.executable, "tools/lifeos_lessons.py", "build"],
     [sys.executable, "tools/lifeos_setup.py"],
     [sys.executable, "tools/lifeos_dashboard.py"],
+    [sys.executable, "tools/lifeos_morning_ping.py"],
 ]
 
 

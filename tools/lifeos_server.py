@@ -484,7 +484,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    refresh()
+    if os.environ.get("LIFEOS_SKIP_BOOT_REFRESH", "").lower() not in ("1", "true", "yes"):
+        refresh()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"http://{HOST}:{PORT}")
     if HOST in ("0.0.0.0", ""):
