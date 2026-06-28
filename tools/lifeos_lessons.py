@@ -20,6 +20,7 @@ import argparse
 import base64
 import html
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
@@ -143,6 +144,8 @@ def wiki_photo(article: str, width: int = 900) -> tuple[str | None, str]:
     returns a valid pre-generated URL at the requested width (hand-editing the
     width into an upload.wikimedia.org URL is now rejected with HTTP 400).
     """
+    if os.environ.get("LIFEOS_SKIP_LESSON_IMAGES", "").lower() in {"1", "true", "yes"}:
+        return None, ""
     mkey = f"{article}|{width}"
     meta = _load_meta()
     try:
