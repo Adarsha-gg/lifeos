@@ -488,6 +488,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
                 return
+        if parsed.path in ("/private", "/private/"):
+            index = OUT / "private-readings" / "index.html"
+            if not index.exists():
+                run([sys.executable, "tools/lifeos_private_library.py", "build"], timeout=60)
+            if index.exists():
+                body = index.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
         if parsed.path in ("/m", "/mobile", "/control"):
             body = MOBILE_HTML.encode()
             self.send_response(200)
