@@ -912,7 +912,7 @@ def infer_pg_tags(title: str, url: str) -> list[str]:
     haystack = f"{title} {url}".lower()
     rules = [
         ("startups", ["startup", "founder", "fundraising", "investor", "users", "growth", "company", "ycombinator"]),
-        ("writing", ["write", "writing", "words", "essay", "talk", "read", "usefully", "simply"]),
+        ("writing", ["write", "writing", "words", "prose", "usefully", "simply"]),
         ("thinking", ["ideas", "truth", "bias", "disagree", "know", "expert", "heresy", "taste", "smart"]),
         ("work", ["work", "hard", "determination", "procrastination", "ambition", "boss", "love", "project"]),
         ("programming", ["hackers", "lisp", "language", "python", "java", "programmers", "open source", "software"]),
@@ -928,8 +928,8 @@ def pg_default_digest(title: str, url: str, tags: list[str]) -> dict[str, Any]:
     profile = pg_tag_profile(tags)
     return {
         "summary": (
-            f"Original LifeOS digest for Paul Graham's '{title}', focused on {profile['lens']}. "
-            "Use the official essay as source text; this curriculum unit stores only a study map."
+            f"Original LifeOS close-reading companion for Paul Graham's '{title}', focused on {profile['lens']}. "
+            "Use the official essay as source text; this curriculum unit stores original analysis and reading prompts rather than the essay body."
         ),
         "key_ideas": [
             profile["idea"],
@@ -946,6 +946,211 @@ def pg_default_digest(title: str, url: str, tags: list[str]) -> dict[str, Any]:
         ],
         "official_url": url,
     }
+
+
+PG_DEEP_PROFILES: dict[str, dict[str, Any]] = {
+    "corpdev": {
+        "lede": (
+            "This essay is not just a warning against meetings. It is a model of how an apparently optional conversation "
+            "can transfer leverage from a startup to a buyer before the founders notice. Read it as founder psychology, "
+            "negotiation design, and attention management at the same time."
+        ),
+        "sections": [
+            {
+                "title": "The meeting is the product",
+                "body": (
+                    "Corp dev does not need a signed deal for the first meeting to be useful to them. The meeting gives the acquirer "
+                    "information, optionality, and a chance to start reframing the founder's mind around acquisition. The startup pays "
+                    "with scarce attention and with a new story: maybe stopping is rational, maybe the price will be amazing, maybe growth "
+                    "is less urgent than finding out what they want."
+                ),
+                "items": [
+                    "Ask what the other side gains even if no deal happens.",
+                    "Separate curiosity from strategic necessity.",
+                    "Treat attention as a balance-sheet asset, not a soft cost.",
+                ],
+            },
+            {
+                "title": "Why the middle is dangerous",
+                "body": (
+                    "Graham's key segmentation is not 'sell or never sell.' It is stage-dependent leverage. A dying company has little to lose. "
+                    "A dominant company can walk away. The vulnerable case is the promising young company: real momentum, not enough size, "
+                    "and founders still hungry for validation. That is exactly when an acquisition conversation can turn confidence into doubt."
+                ),
+                "items": [
+                    "Strong enough to be interesting, not strong enough to be immune.",
+                    "Validation becomes a trap when it changes the operating cadence.",
+                    "The question is not 'could we sell someday?' but 'do we want to sell right now?'",
+                ],
+            },
+            {
+                "title": "The slippery slope is psychological, not procedural",
+                "body": (
+                    "The process starts as information gathering, then becomes imagined price, then morale drag, then reversed burden of proof. "
+                    "Instead of the buyer convincing you to sell, you begin convincing the buyer to buy. That reversal is the essay's deepest warning: "
+                    "a founder can enter as the scarce asset and leave behaving like the supplicant."
+                ),
+                "items": [
+                    "Curiosity → imagined offer → distraction → demoralization → supplication.",
+                    "Lowball offers are not only price signals; they can be morale weapons.",
+                    "A process can be bad even when every individual step feels harmless.",
+                ],
+            },
+            {
+                "title": "The rule is a precommitment device",
+                "body": (
+                    "The 'don't take the first meeting' rule is intentionally blunt because founders are bad judges once flattery and fatigue enter. "
+                    "It works like an addiction guardrail: decide before the stimulus arrives. If the answer to 'sell right now?' is no, the meeting "
+                    "does not get to become a research project."
+                ),
+                "items": [
+                    "A threshold rule beats case-by-case rationalization.",
+                    "The right script is simple: we are focused on growing the company.",
+                    "The exception is also simple: if you are genuinely ready to sell, use a different playbook.",
+                ],
+            },
+        ],
+        "anchors": [
+            {"label": "corp dev", "note": "A role name that already reveals the intent: buying companies."},
+            {"label": "sell right now", "note": "The only question that matters before agreeing to talk."},
+            {"label": "middle-stage vulnerability", "note": "Momentum without enough leverage creates maximum manipulability."},
+            {"label": "attention cost", "note": "The hidden price paid before any acquisition price appears."},
+            {"label": "morale", "note": "The founder's operating energy can be damaged by imagining the race is optional."},
+            {"label": "first meeting", "note": "The preventive boundary, not a small harmless step."},
+        ],
+        "source_protocol": (
+            "Read the official essay looking for stage distinctions, not just the headline advice. Mark the paragraph where the founder's "
+            "position flips from seller-with-leverage to buyer-pleaser. Then write your own refusal script for a company you are not ready to sell."
+        ),
+        "practice": (
+            "For one current project, define the interruption class that would be your version of corp dev: flattering, plausible, and strategically toxic. "
+            "Write the rule you will use before the invitation arrives."
+        ),
+    },
+    "ds": {
+        "lede": (
+            "This is not a cute startup slogan. It is an argument about using unscalable labor as instrumentation: manual work lets founders see "
+            "desire, confusion, and trust gaps before automation hides them."
+        ),
+        "sections": [
+            {
+                "title": "Manual work as a sensor",
+                "body": "The unscalable action is valuable because it puts the founder close enough to observe friction directly. The goal is not heroics; it is measurement before abstraction.",
+                "items": ["Recruit by hand to learn who actually cares.", "Onboard manually to see where trust breaks.", "Fix individual failures until the pattern is obvious."],
+            },
+            {
+                "title": "Delight beats breadth early",
+                "body": "A small number of intensely served users can reveal product-market fit faster than a broad, weak launch. Density creates signal.",
+                "items": ["Narrow wedge first.", "High-touch learning before scalable funnel work.", "Automate only after the loop is understood."],
+            },
+        ],
+        "anchors": [
+            {"label": "unscalable", "note": "Not inefficient forever; deliberately manual while the loop is unknown."},
+            {"label": "delight", "note": "A stronger early signal than polite interest."},
+            {"label": "wedge", "note": "A narrow use case where intensity can beat breadth."},
+        ],
+        "source_protocol": "While reading the official essay, list every example as a learning instrument: what did the manual action reveal that a scalable system would have missed?",
+    },
+}
+
+
+def _pg_url_key(url: str) -> str:
+    stem = Path(str(url).split("?", 1)[0]).stem
+    return slug(stem)
+
+
+def _signal_terms(signals: Any, limit: int = 6) -> list[str]:
+    if not isinstance(signals, dict):
+        return []
+    terms = signals.get("top_terms")
+    if not isinstance(terms, list):
+        return []
+    out: list[str] = []
+    for term in terms:
+        term = str(term).strip()
+        if term and term not in out:
+            out.append(term)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def pg_deep_companion(title: str, url: str, tags: list[str], digest: dict[str, Any], signals: Any) -> dict[str, Any]:
+    key = _pg_url_key(url)
+    if key in PG_DEEP_PROFILES:
+        return PG_DEEP_PROFILES[key]
+
+    terms = _signal_terms(signals)
+    profile = pg_tag_profile(tags)
+    term_text = ", ".join(terms[:5]) if terms else "the repeated words and examples in the official essay"
+    ideas = [str(item) for item in digest.get("key_ideas", []) if str(item).strip()]
+    anchors = [
+        {"label": term, "note": f"Track how '{term}' is used: is it evidence, analogy, incentive, or warning?"}
+        for term in terms[:6]
+    ]
+    if not anchors:
+        anchors = [
+            {"label": "opening concrete case", "note": "Find the specific observation the essay starts from before accepting the broader rule."},
+            {"label": "general rule", "note": "Name the advice in your own operational language."},
+            {"label": "edge case", "note": "Identify when the advice would break or become too context-dependent."},
+        ]
+    return {
+        "lede": (
+            f"Read '{title}' as a full argument, not as a quote card. The working lens is {profile['lens']}; "
+            f"the close-reading anchors are {term_text}. Keep the official essay open and use this page to preserve structure: "
+            "concrete observation, mechanism, objection, and action."
+        ),
+        "sections": [
+            {
+                "title": "Find the concrete observation",
+                "body": (
+                    "Graham essays usually begin from a noticed detail rather than from a theory. Before extracting advice, locate the concrete case: "
+                    "who is acting, what incentive is visible, and what behavior would look irrational until you see that incentive?"
+                ),
+                "items": [
+                    "Write the opening situation in one sentence.",
+                    "Name the actor whose incentive drives the argument.",
+                    "Separate observation from Graham's later rule.",
+                ],
+            },
+            {
+                "title": "Convert the essay into a mechanism",
+                "body": ideas[0] if ideas else profile["idea"],
+                "items": [
+                    "What causes what?",
+                    "What feedback loop makes the behavior stronger?",
+                    "What would you observe if the mechanism were false?",
+                ],
+            },
+            {
+                "title": "Preserve the limits",
+                "body": (
+                    "The useful version of the essay is not a universal command. State the exception cases: stage, temperament, market, timing, "
+                    "or missing evidence. This is where the lesson becomes usable instead of merely memorable."
+                ),
+                "items": [
+                    "Name one situation where the advice is wrong.",
+                    "Name one cost of following it too literally.",
+                    "Name the evidence that would make you update.",
+                ],
+            },
+        ],
+        "anchors": anchors,
+        "source_protocol": (
+            "Read the official essay in order. Do not skim for the famous line. For each anchor, mark where it appears, what role it plays, "
+            "and whether it is a claim, example, warning, or application."
+        ),
+        "practice": digest.get("application_prompt") or profile["prompt"],
+    }
+
+
+def _html_paragraphs(*texts: str) -> str:
+    return "".join(f"<p>{html_lib.escape(str(text))}</p>" for text in texts if str(text).strip())
+
+
+def _html_list(items: list[str]) -> str:
+    clean = [str(item).strip() for item in items if str(item).strip()]
+    return "<ul>" + "".join(f"<li>{html_lib.escape(item)}</li>" for item in clean) + "</ul>" if clean else ""
 
 
 def read_pg_json_units() -> list[dict[str, Any]]:
@@ -984,16 +1189,20 @@ def pg_curriculum_unit(raw: dict[str, Any], order: int) -> Unit:
     if not questions:
         questions = pg_default_digest(title, url, tags)["thinking_questions"]
     application = str(digest.get("application_prompt") or pg_tag_profile(tags)["prompt"])
+    signals = raw.get("text_signals") if isinstance(raw.get("text_signals"), dict) else {}
+    companion = pg_deep_companion(title, url, tags, digest, signals)
+    companion_anchors = [a for a in companion.get("anchors", []) if isinstance(a, dict)]
+    anchor_terms = [(str(a.get("label", "")), str(a.get("note", ""))) for a in companion_anchors if a.get("label")]
     unit_id = str(raw.get("id") or f"pg-{slug(Path(url).stem or title)}")
     return {
         "id": unit_id,
         "title": title,
-        "subtitle": f"Paul Graham essay digest: {', '.join(tags[:2])}",
+        "subtitle": f"Paul Graham close reading: {', '.join(tags[:2])}",
         "summary": summary,
         "kind": "essay-digest",
         "level": tags[0],
         "order": int(raw.get("order") or order),
-        "minutes": int(raw.get("minutes") or 20),
+        "minutes": int(raw.get("minutes") or 24),
         "prerequisites": raw.get("prerequisites") if isinstance(raw.get("prerequisites"), list) else [],
         "source": {"label": f"Paul Graham: {title}", "url": url},
         "objectives": [
@@ -1002,14 +1211,15 @@ def pg_curriculum_unit(raw: dict[str, Any], order: int) -> Unit:
             "Apply the idea to current work, learning, writing, or startup judgment.",
         ],
         "sections": [
-            section("Digest", summary),
-            section("Key ideas", " ".join(f"{index}. {idea}" for index, idea in enumerate(key_ideas, start=1))),
-            section("Application", application),
-            section("Question set", " ".join(questions[:4])),
-            section("Source practice", "Read the official essay at the source URL, then keep notes as claims, examples, objections, and actions. This unit stores no full essay body."),
+            section("What this essay is really about", _html_paragraphs(str(companion.get("lede") or summary))),
+            section("Close-reading anchors", _html_list([f"{label}: {note}" for label, note in anchor_terms[:6]])),
+            section("Use it without flattening it", _html_paragraphs(str(companion.get("practice") or application))),
+            section("Source practice", _html_paragraphs(str(companion.get("source_protocol") or "Read the official essay at the source URL, then keep notes as claims, examples, objections, and actions. This unit stores no full essay body."))),
+            section("What not to do", _html_paragraphs("Do not turn the essay into a one-line takeaway. Keep the original source open, preserve the order of the argument, and write down the strongest objection before deciding what action to take.")),
         ],
+        "ideas": anchor_terms[:5] or [(f"Idea {index}", idea) for index, idea in enumerate(key_ideas, start=1)],
         "thinking_questions": questions,
-        "application_prompt": application,
+        "application_prompt": str(companion.get("practice") or application),
         "review_prompts": [
             "Restate the thesis from memory.",
             "Name one example from your own work where the idea applies.",
@@ -1017,6 +1227,8 @@ def pg_curriculum_unit(raw: dict[str, Any], order: int) -> Unit:
         ],
         "author": "Paul Graham",
         "tags": tags,
+        "source_signals": signals,
+        "deep_companion": companion,
     }
 
 

@@ -191,7 +191,7 @@ STOPWORDS = {
 
 TAG_RULES: list[tuple[str, list[str]]] = [
     ("startups", ["startup", "founder", "fundraising", "investor", "venture", "vc", "users", "growth", "company", "y combinator"]),
-    ("writing", ["write", "writing", "words", "essay", "talk", "read", "usefully", "simply"]),
+    ("writing", ["write", "writing", "words", "prose", "usefully", "simply"]),
     ("thinking", ["ideas", "truth", "bias", "disagree", "know", "expert", "heresy", "taste", "smart"]),
     ("work", ["work", "hard", "determination", "procrastination", "ambition", "boss", "love", "project"]),
     ("programming", ["hackers", "lisp", "language", "python", "java", "programmers", "opensource", "software"]),
@@ -427,8 +427,8 @@ def digest_for(title: str, url: str, tags: list[str], terms: list[str]) -> dict[
     ]
     return {
         "summary": (
-            f"Original LifeOS digest for a Paul Graham essay on {lenses}. "
-            f"Use the official essay as the source text; this unit stores a compressed study map rather than the essay body."
+            f"Original LifeOS close-reading companion for a Paul Graham essay on {lenses}. "
+            f"Use the official essay as the source text; this unit stores original analysis and reading prompts rather than the essay body."
             f"{term_note}"
         ),
         "key_ideas": key_ideas[:3],
@@ -496,7 +496,7 @@ def build_units(
                 "date": date,
                 "tags": tags,
                 "kind": "essay-digest",
-                "minutes": 20,
+                "minutes": 28,
                 "digest": digest,
                 "text_signals": {
                     "top_terms": terms,
