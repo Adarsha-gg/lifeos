@@ -21,6 +21,7 @@ import base64
 import html
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -1221,6 +1222,99 @@ def _reading_note_html(lesson: dict[str, Any]) -> str:
         "</section>"
     )
 
+def _domain_companion_lens(domain: str) -> tuple[str, str, str]:
+    domain = domain.lower()
+    if domain in {"history", "statecraft"}:
+        return (
+            "timeline, incentives, institutions, and source bias",
+            "Ask who benefits, what changed before/after, and which later story is being projected backward.",
+            "Draw the chain: pressure → decision → unintended consequence → new institution.",
+        )
+    if domain in {"math", "physics", "invention"}:
+        return (
+            "definitions, mechanism, model limits, and worked examples",
+            "Do not stop at the formula or name. Track what each variable means and where the model breaks.",
+            "Draw the system: inputs → transformation → output → failure mode.",
+        )
+    if domain == "startup":
+        return (
+            "customer behavior, incentives, distribution, and founder tradeoffs",
+            "Turn the essay into an operating rule, then name when following it would hurt you.",
+            "Draw the loop: user pain → wedge → feedback → growth or churn.",
+        )
+    if domain == "thinking":
+        return (
+            "claims, assumptions, counterexamples, and transfer",
+            "Separate the argument from the metaphor. Then test the argument on a different domain.",
+            "Draw the argument: premise → inference → objection → revised belief.",
+        )
+    return (
+        "claims, evidence, mechanism, and application",
+        "Read for the structure underneath the facts, not just the facts themselves.",
+        "Draw the model: source → claim → test → action.",
+    )
+
+
+def _plain_text(value: Any, limit: int = 260) -> str:
+    text = re.sub(r"<[^>]+>", " ", str(value or ""))
+    text = " ".join(html.unescape(text).split())
+    return text[:limit].rstrip()
+
+
+def _deep_companion_html(lesson: dict[str, Any]) -> str:
+    """Original long-form companion material; source text stays linked, not mirrored."""
+    title = str(lesson.get("title") or "this reading")
+    meta = lesson.get("curriculum") or {}
+    domain = str(meta.get("domain") or lesson.get("domain") or lesson.get("track") or "general")
+    lens, reading_rule, drawing_rule = _domain_companion_lens(domain)
+    sources = _source_entries(lesson)
+    ideas = [(str(a), str(b)) for a, b in (lesson.get("ideas") or [])][:4]
+    sections = lesson.get("sections") or []
+    section_titles = [str(s.get("heading") or s.get("title") or "Section") for s in sections[:5] if isinstance(s, dict)]
+    first_section = _plain_text(sections[0].get("body") if sections and isinstance(sections[0], dict) else lesson.get("lead"), 420)
+    practice = str(meta.get("practice_prompt") or lesson.get("next") or "Write one paragraph applying this to a live decision.")
+
+    idea_rows = "".join(
+        f"<li><b>{esc(term)}</b><span>{esc(_plain_text(defn, 220))}</span></li>"
+        for term, defn in ideas
+    ) or "<li><b>Core model</b><span>Extract the main mechanism, then test where it fails.</span></li>"
+    section_rows = "".join(f"<li>{esc(t)}</li>" for t in section_titles) or "<li>Read the linked source, then map claims to evidence.</li>"
+    source_cards = "".join(
+        f"<a href='{esc(url)}' target='_blank' rel='noopener noreferrer'><b>{esc(label)}</b><span>{esc(note or 'Open this source while reading the companion notes.')}</span></a>"
+        for label, url, note in sources[:6]
+    ) or "<p>No external source link was attached yet. Treat this as a local LifeOS companion and add sources before relying on the claim.</p>"
+    idea_labels = [term for term, _ in ideas[:3]] or ["claim", "evidence", "practice"]
+
+    return f"""
+<section class='companion'>
+  <div class='companion-k'>Deep study companion</div>
+  <h2>Do not reduce {esc(title)} to a takeaway</h2>
+  <p>This page is a companion, not a replacement for the source. The goal is to make the original easier to read closely: keep the linked sources open, compare the claims, and use these notes to build your own model.</p>
+  <div class='companion-grid'>
+    <div class='companion-card'><h3>Reading lens</h3><p>Read for <b>{esc(lens)}</b>. {esc(reading_rule)}</p></div>
+    <div class='companion-card'><h3>First-pass model</h3><p>{esc(first_section)}</p></div>
+  </div>
+  <div class='diagram' role='img' aria-label='Study model diagram'>
+    <svg viewBox='0 0 760 220' xmlns='http://www.w3.org/2000/svg'>
+      <defs><marker id='arrow' markerWidth='10' markerHeight='10' refX='7' refY='3' orient='auto'><path d='M0,0 L0,6 L8,3 z' fill='#151719'/></marker></defs>
+      <rect x='20' y='28' width='150' height='68' rx='10' fill='#fff' stroke='#d8d3c8'/><text x='95' y='58' text-anchor='middle' font-size='15' font-weight='800'>Source trail</text><text x='95' y='80' text-anchor='middle' font-size='12'>{esc(idea_labels[0])}</text>
+      <rect x='220' y='28' width='150' height='68' rx='10' fill='#fff' stroke='#d8d3c8'/><text x='295' y='58' text-anchor='middle' font-size='15' font-weight='800'>Mechanism</text><text x='295' y='80' text-anchor='middle' font-size='12'>{esc(idea_labels[1] if len(idea_labels)>1 else 'model')}</text>
+      <rect x='420' y='28' width='150' height='68' rx='10' fill='#fff' stroke='#d8d3c8'/><text x='495' y='58' text-anchor='middle' font-size='15' font-weight='800'>Objection</text><text x='495' y='80' text-anchor='middle' font-size='12'>limits</text>
+      <rect x='590' y='126' width='150' height='68' rx='10' fill='#fff' stroke='#d8d3c8'/><text x='665' y='156' text-anchor='middle' font-size='15' font-weight='800'>Application</text><text x='665' y='178' text-anchor='middle' font-size='12'>{esc(idea_labels[2] if len(idea_labels)>2 else 'practice')}</text>
+      <path d='M170 62 H220' stroke='#151719' stroke-width='2' marker-end='url(#arrow)'/><path d='M370 62 H420' stroke='#151719' stroke-width='2' marker-end='url(#arrow)'/><path d='M570 80 C620 90 645 105 665 126' fill='none' stroke='#151719' stroke-width='2' marker-end='url(#arrow)'/>
+      <text x='28' y='188' font-size='13' fill='#5f665f'>{esc(drawing_rule)}</text>
+    </svg>
+  </div>
+  <div class='companion-grid'>
+    <div class='companion-card'><h3>Claim map</h3><ul>{idea_rows}</ul></div>
+    <div class='companion-card'><h3>Read in this order</h3><ol>{section_rows}</ol></div>
+  </div>
+  <div class='companion-card'><h3>Original-source protocol</h3><p>Open the source links below. For every major claim, mark one line as evidence, one as interpretation, and one as something you would need to verify elsewhere. If a source is an essay, preserve the author's argument order; if it is a textbook or reference, preserve definitions and examples before jumping to applications.</p><div class='sourceCards'>{source_cards}</div></div>
+  <div class='companion-card'><h3>Apply it without flattening it</h3><p>{esc(_plain_text(practice, 500))}</p></div>
+</section>
+"""
+
+
 def _curriculum_extra_html(lesson: dict[str, Any]) -> str:
     meta = lesson.get("curriculum")
     if not meta:
@@ -1296,7 +1390,15 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 .sourceTrail li+li,.questionBlock li+li{{margin-top:7px}}
 .sourceTrail a{{color:inherit;font-weight:850;text-decoration:underline;text-underline-offset:2px}}
 .sourceTrail span{{display:block;color:var(--muted);font-size:13px;margin-top:2px}}
-@media(max-width:640px){{.completebar{{align-items:flex-start;flex-direction:column}}.completebar button{{width:100%}}}}
+.companion{{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:26px 0;margin:34px 0;color:var(--fg)}}
+.companion-k{{font:850 12px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}}
+.companion h2{{font:850 31px/1.08 Georgia,serif;margin:0 0 10px}}.companion h3{{font:850 18px/1.15 system-ui;margin:0 0 8px}}
+.companion p{{color:#cfe7da;font-size:17px;line-height:1.65;margin:0 0 12px}}.companion b{{color:var(--fg)}}
+.companion-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}}.companion-card{{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:16px}}
+.companion-card ul,.companion-card ol{{margin:0;padding-left:20px;color:#dceddf;font-size:16px;line-height:1.55}}.companion-card li+li{{margin-top:8px}}.companion-card li span{{display:block;color:#cfe7da;margin-top:2px}}
+.diagram{{border:1px solid var(--line);background:#f7f5f0;border-radius:14px;margin:16px 0;overflow:hidden}}.diagram svg{{display:block;width:100%;height:auto}}
+.sourceCards{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}}.sourceCards a{{display:block;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:12px;background:#0b130f}}.sourceCards span{{display:block;color:var(--muted);font-size:13px;line-height:1.35;margin-top:4px}}
+@media(max-width:640px){{.completebar{{align-items:flex-start;flex-direction:column}}.completebar button{{width:100%}}.companion-grid,.sourceCards{{grid-template-columns:1fr}}}}
 :root{{--accent:{accent}}}</style></head>
 <body><div class='wrap'>
 <div class='topbar'><a href='/learn'>&larr; Today's lessons</a><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/output/learn/learning-system.html'>Training queue</a><span>{esc(day)}</span></div>
@@ -1308,6 +1410,7 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 <div class='meta'><span>⏱ {esc(max(5, int(lesson.get('minutes') or 5)))} min read</span><span>Worth more than the feed</span></div>
 <p class='lead'>{lesson['lead']}</p>
 {_sections_html(lesson['sections'])}
+{_deep_companion_html(lesson)}
 <details class='extrasDrop'><summary>Notes, questions, sources, and practice</summary><div class='extrasInner'>
 {_reading_note_html(lesson)}
 {_ideas_html(lesson['ideas'])}
