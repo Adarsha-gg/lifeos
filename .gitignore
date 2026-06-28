@@ -9,3 +9,5 @@ data/
 *.log
 *.tmp
 .DS_Store
+.vercel
+.env*
