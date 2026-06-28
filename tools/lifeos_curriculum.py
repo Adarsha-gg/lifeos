@@ -613,6 +613,9 @@ def unit_to_lesson(unit: dict[str, Any], track: dict[str, Any]) -> dict[str, Any
         "sources": unit.get("sources") or [unit.get("source")] or track.get("sources") or [],
         "next": str(unit.get("next", "")),
         "track": f"curriculum-{domain}",
+        "tags": list(unit.get("tags") or []),
+        "source_signals": unit.get("source_signals") or unit.get("text_signals") or {},
+        "deep_companion": unit.get("deep_companion"),
         "curriculum": {
             "track_id": track_id,
             "track_name": str(track.get("name", track_id)),
