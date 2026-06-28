@@ -34,6 +34,8 @@ def run(cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except FileNotFoundError:
         return 127, "", f"not found: {cmd[0]}"
+    except OSError as exc:
+        return 126, "", f"could not run {cmd[0]}: {exc}"
     except subprocess.TimeoutExpired:
         return 124, "", "timeout"
 

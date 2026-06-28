@@ -25,6 +25,7 @@ PIPELINE = [
     [sys.executable, "tools/daily_brief.py"],
     [sys.executable, "tools/lifeos_games.py", "build"],
     [sys.executable, "tools/lifeos_arcade.py", "build"],
+    [sys.executable, "tools/lifeos_generate.py", "missions"],
     [sys.executable, "tools/lifeos_lessons.py", "build"],
     [sys.executable, "tools/lifeos_setup.py"],
     [sys.executable, "tools/lifeos_dashboard.py"],
@@ -68,7 +69,10 @@ def ensure_action_queue() -> str:
 def run_pipeline() -> dict[str, Any]:
     OUT.mkdir(parents=True, exist_ok=True)
     approval_queue = ensure_action_queue()
-    steps = [run_step(cmd) for cmd in PIPELINE]
+    steps = [
+        run_step(cmd, timeout=600 if "lifeos_generate.py" in cmd else 90)
+        for cmd in PIPELINE
+    ]
     ok = all(step["returncode"] == 0 for step in steps)
     payload = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),

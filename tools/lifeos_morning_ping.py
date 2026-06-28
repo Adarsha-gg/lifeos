@@ -25,6 +25,7 @@ from pathlib import Path
 from lifeos_paths import VAULT_ROOT
 
 MANIFEST = VAULT_ROOT / "output" / "learn" / "today.json"
+GENERATION_STATUS = VAULT_ROOT / "output" / "learn" / "generation-status.json"
 PORT = 8787
 
 
@@ -46,23 +47,40 @@ def load_manifest() -> dict:
         return {}
 
 
+def load_generation_status() -> dict:
+    try:
+        return json.loads(GENERATION_STATUS.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
 def build_message() -> tuple[str, str]:
     m = load_manifest()
+    generation = load_generation_status()
     url = f"http://{lan_ip()}:{PORT}/learn"
+    public = os.environ.get("LIFEOS_PUBLIC_URL", "").strip().rstrip("/")
     titles = [f"{l.get('emoji','•')} {l.get('title','')}" for l in m.get("lessons", [])]
     body_lines = ["🌅 Your LifeOS morning lessons are ready —", *titles, "", f"Open: {url}",
                   "(read one instead of scrolling)"]
+    if public:
+        body_lines.append(f"Telegram Mini App: {public}/learn?app=1")
+    if int(generation.get("failed_count") or 0) > 0:
+        body_lines.append(f"Warning: {generation.get('failed_count')} topic did not generate today.")
     return "LifeOS morning lessons", "\n".join(body_lines)
 
 
 def send_telegram(title: str, body: str) -> str | None:
-    token = os.environ.get("LIFEOS_TG_BOT_TOKEN", "").strip()
-    chat = os.environ.get("LIFEOS_TG_CHAT_ID", "").strip()
+    token = (os.environ.get("LIFEOS_TG_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+    chat = (os.environ.get("LIFEOS_TG_CHAT_ID") or os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
     if not token or not chat:
         return None
-    data = urllib.parse.urlencode({
-        "chat_id": chat, "text": body, "disable_web_page_preview": "true",
-    }).encode()
+    payload = {"chat_id": chat, "text": body, "disable_web_page_preview": "true"}
+    public = os.environ.get("LIFEOS_PUBLIC_URL", "").strip().rstrip("/")
+    if public:
+        payload["reply_markup"] = json.dumps({
+            "inline_keyboard": [[{"text": "Open today's lessons", "web_app": {"url": f"{public}/learn?app=1"}}]]
+        })
+    data = urllib.parse.urlencode(payload).encode()
     req = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage", data=data,
         headers={"User-Agent": "LifeOS/1.0"},
