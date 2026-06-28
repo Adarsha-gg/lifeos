@@ -1283,7 +1283,13 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 .user-highlight{{background:#ffe66d;color:#151719;border-radius:3px;padding:0 .08em;box-decoration-break:clone;-webkit-box-decoration-break:clone}}
 .hlbar{{position:fixed;z-index:99;display:none;gap:6px;background:#151719;color:#fff;border:1px solid #000;border-radius:999px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.22)}}
 .hlbar.show{{display:flex}}.hlbar button{{border:0;border-radius:999px;background:#fff;color:#151719;font:850 13px/1 system-ui;padding:9px 12px;cursor:pointer}}.hlbar [data-hl-clear]{{background:#2b2b2b;color:#fff}}
-.readingNote,.questionBlock,.sourceTrail{{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:18px 20px;margin:24px 0}}
+.extrasDrop{{border:1px solid var(--line);border-radius:14px;background:var(--card);margin:28px 0;overflow:hidden}}
+.extrasDrop summary{{cursor:pointer;list-style:none;padding:16px 18px;font:850 15px/1.2 system-ui;color:var(--fg);display:flex;justify-content:space-between;gap:12px;align-items:center}}
+.extrasDrop summary::-webkit-details-marker{{display:none}}
+.extrasDrop summary::after{{content:'+';color:var(--muted);font-size:20px;line-height:1}}
+.extrasDrop[open] summary{{border-bottom:1px solid var(--line)}}.extrasDrop[open] summary::after{{content:'–'}}
+.extrasInner{{padding:0 18px 18px}}
+.readingNote,.questionBlock,.sourceTrail{{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:18px 20px;margin:16px 0}}
 .readingNote h3,.questionBlock h3,.sourceTrail h3{{margin:0 0 8px;font:850 22px/1.1 system-ui;color:var(--fg)}}
 .readingNote p,.questionBlock p,.sourceTrail p{{margin:0 0 10px;color:#cfe7da;font-size:16px;line-height:1.55}}
 .questionBlock ul,.sourceTrail ul{{margin:0;padding-left:20px;color:#dceddf;font-size:16px;line-height:1.55}}
@@ -1302,6 +1308,7 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 <div class='meta'><span>⏱ {esc(max(5, int(lesson.get('minutes') or 5)))} min read</span><span>Worth more than the feed</span></div>
 <p class='lead'>{lesson['lead']}</p>
 {_sections_html(lesson['sections'])}
+<details class='extrasDrop'><summary>Notes, questions, sources, and practice</summary><div class='extrasInner'>
 {_reading_note_html(lesson)}
 {_ideas_html(lesson['ideas'])}
 {curriculum_block}
@@ -1311,6 +1318,7 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 {_play_cta(lesson['id'])}
 <div class='completebar'><div><b>Lock this node into your knowledge graph</b><span data-lifeos-level>Level 1 / 0 XP</span></div><button data-complete-node>Mark complete</button></div>
 {_source_trail_html(lesson)}
+</div></details>
 </main>
 <div class='foot'>
 <p>{esc(lesson.get('next',''))}</p>
