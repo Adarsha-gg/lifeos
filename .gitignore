@@ -3,6 +3,7 @@ __pycache__/
 .env
 .cache/
 loop/
+private/
 public/
 output/
 data/
