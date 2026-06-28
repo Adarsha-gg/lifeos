@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""LifeOS learning engine.
+
+Builds a Math Academy-inspired layer on top of the LifeOS knowledge graph:
+source-backed principles, a personal student model, due reviews, frontier
+selection, interleaving, and an ingestion contract for long documents.
+
+Build: python tools/lifeos_learning_engine.py build
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime
+from typing import Any
+
+from lifeos_paths import VAULT_ROOT
+from lifeos_skill_tree import load_graph_store
+
+OUT = VAULT_ROOT / "output" / "learn"
+
+
+SOURCE_NOTES: list[dict[str, str]] = [
+    {
+        "id": "mathacademy-how-ai-works",
+        "title": "Math Academy: How Our AI Works",
+        "url": "https://www.mathacademy.com/how-our-ai-works",
+        "takeaway": (
+            "Treat learning as a dynamic student model over a granular knowledge graph. "
+            "The system should decide what the learner is ready for next, not just list content."
+        ),
+    },
+    {
+        "id": "mathacademy-pedagogy",
+        "title": "Math Academy: Pedagogy",
+        "url": "https://www.mathacademy.com/pedagogy",
+        "takeaway": (
+            "Use active recall, spaced review, mixed practice, and mastery thresholds. "
+            "Reading is input; durable learning requires retrieval and practice."
+        ),
+    },
+]
+
+
+PRINCIPLES: list[dict[str, str]] = [
+    {
+        "id": "atomic-concepts",
+        "name": "Atomic concepts",
+        "rule": "Break lessons, books, and games into concept nodes small enough to test or practice.",
+        "implemented_as": "Every article/game becomes a graph node with domain, kind, XP, and source metadata.",
+    },
+    {
+        "id": "typed-graph",
+        "name": "Typed knowledge graph",
+        "rule": "Edges must mean something real: prerequisite, practice, analogy, application, or review.",
+        "implemented_as": "Unrelated domains remain separate islands until an explicit edge is justified.",
+    },
+    {
+        "id": "student-model",
+        "name": "Personal student model",
+        "rule": "The user graph is an overlay on top of the global library, not the whole library.",
+        "implemented_as": "Browser progress stores learned nodes and review stages in localStorage.",
+    },
+    {
+        "id": "knowledge-frontier",
+        "name": "Knowledge frontier",
+        "rule": "Recommend nodes whose prerequisites are satisfied, plus a small number of new roots.",
+        "implemented_as": "The training queue computes frontier nodes from completed prerequisites.",
+    },
+    {
+        "id": "retrieval-first",
+        "name": "Retrieval first",
+        "rule": "A lesson should end in recall, manipulation, prediction, or a game, not passive rereading.",
+        "implemented_as": "Practice games and review prompts outrank fresh reading when items are due.",
+    },
+    {
+        "id": "spaced-interleaved",
+        "name": "Spaced and interleaved",
+        "rule": "Due reviews come first; new material is mixed across domains to prevent fake fluency.",
+        "implemented_as": "The queue separates due review, frontier, and mixed practice lanes.",
+    },
+]
+
+
+INGESTION_CONTRACT: dict[str, Any] = {
+    "input_types": ["markdown", "txt", "pdf_text", "web_article"],
+    "pipeline": [
+        "capture_source_metadata",
+        "chunk_into_sections",
+        "extract_atomic_concepts",
+        "extract_typed_edges",
+        "attach_source_pointers",
+        "generate_blog_lesson",
+        "generate_practice_game_spec",
+        "merge_into_global_graph_after_review",
+    ],
+    "node_schema": {
+        "id": "stable-kebab-id",
+        "domain": "history|physics|systems|growth|culture|thinking|custom|math|startup",
+        "title": "Concept title",
+        "kind": "article|game|concept|source",
+        "xp": "integer",
+        "url": "/output/learn/example.html",
+        "summary": "One sentence concept meaning",
+        "sources": [{"source_id": "book-or-doc-id", "locator": "chapter/section/page"}],
+        "difficulty": "intro|core|hard",
+        "estimated_minutes": "integer",
+    },
+    "edge_schema": {
+        "from": "source-node-id",
+        "to": "target-node-id",
+        "relation": "prerequisite|practice|application|analogy|review",
+        "reason": "Short reason this edge is real",
+        "confidence": "0.0-1.0",
+    },
+    "copyright_rule": (
+        "Store summaries, source IDs, locators, and short compliant excerpts only when needed. "
+        "Do not paste books or long copyrighted docs into generated pages."
+    ),
+}
+
+
+CSS = """
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f6f4ee;color:#16191c;font-family:Inter,system-ui,-apple-system,sans-serif}
+a{color:inherit}.shell{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:20px 0 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #d7d1c4;padding-bottom:14px;margin-bottom:24px}.top a{text-decoration:none;color:#5d625d;font-weight:850}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start;border-bottom:3px solid #16191c;padding-bottom:24px}.k{font:900 12px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;color:#926b25}.hero h1{font:850 clamp(44px,7vw,78px)/.9 Georgia,serif;letter-spacing:0;margin:8px 0 12px}.hero p{font:500 19px/1.55 Georgia,serif;color:#434a45;margin:0;max-width:760px}.sourcebox{border:1px solid #d7d1c4;background:#fff;padding:12px}.sourcebox strong{display:block;font:900 14px/1.2 system-ui;margin:0 0 5px}.sourcebox p{margin:0 0 8px;color:#4e5650;font:650 13px/1.38 system-ui}.sourcebox a{display:block;color:#315f9d;font:750 11px/1.25 system-ui;margin:0 0 8px;overflow-wrap:anywhere}
+.model{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}.metric{background:#fff;border:1px solid #d7d1c4;padding:14px}.metric span{display:block;color:#6a6b66;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase}.metric b{display:block;font:900 30px/1 system-ui;margin-top:7px}
+.queue{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0 28px}.lane{background:#fff;border:1px solid #d7d1c4;padding:14px;min-height:250px}.lane h2{font:900 22px/1 Georgia,serif;margin:0 0 5px}.lane p{margin:0 0 12px;color:#646a65;font:650 13px/1.4 system-ui}.item{border-top:1px solid #e4dfd4;padding:11px 0}.item:first-of-type{border-top:0}.item strong{display:block;font:850 16px/1.15 system-ui}.item small{display:block;color:#606963;font:650 12px/1.35 system-ui;margin-top:4px}.item .buttons{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}.item a,.item button{border:1px solid #c9c2b5;background:#fff;color:#16191c;text-decoration:none;border-radius:7px;padding:8px 10px;font:850 12px/1 system-ui;cursor:pointer}.item a{background:#16191c;color:#fff}.empty{color:#74746c;font:650 13px/1.4 system-ui;border-top:1px solid #e4dfd4;padding-top:12px}
+.principles{border-top:3px solid #16191c;padding-top:18px;margin-top:26px}.principles h2{font:850 28px/1 Georgia,serif;margin:0 0 12px}.plist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.principle{background:#fff;border:1px solid #d7d1c4;padding:13px}.principle strong{display:block;font:900 16px/1.15 system-ui;margin-bottom:6px}.principle p{margin:0;color:#4d554f;font:600 13px/1.45 system-ui}.ingest{margin-top:28px;border:1px solid #16191c;background:#fff;padding:16px}.ingest h2{font:850 25px/1 Georgia,serif;margin:0 0 8px}.ingest code{font:800 13px/1.4 ui-monospace,Consolas,monospace;color:#315f9d}.ingest p{color:#4d554f;font:600 14px/1.5 system-ui}.foot{margin-top:26px;color:#6b6d66;font:650 13px/1.5 system-ui}
+@media(max-width:860px){.top{justify-content:flex-start}.top a{overflow-wrap:anywhere}.hero,.queue{grid-template-columns:1fr}.model,.plist{grid-template-columns:1fr}.hero h1{font-size:44px}.hero p{font-size:17px;max-width:32ch;overflow-wrap:break-word}.shell{width:min(620px,calc(100% - 28px))}}
+"""
+
+
+JS = r"""
+(function(){
+const ENGINE=__ENGINE__;
+const GRAPH=ENGINE.graph;
+const KEY='lifeos.learning.progress.v1';
+const INTERVALS=[1,3,7,14,30,60,120];
+const $=s=>document.querySelector(s);
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
+function save(p){localStorage.setItem(KEY,JSON.stringify(p))}
+function progress(){const p=load();p.done=p.done||{};p.reviews=p.reviews||{};return p}
+function node(id){return GRAPH.nodes.find(n=>n.id===id)}
+function doneIds(){return new Set(Object.keys(progress().done||{}))}
+function incoming(id){return GRAPH.edges.filter(e=>e.to===id)}
+function outgoing(id){return GRAPH.edges.filter(e=>e.from===id)}
+function prereqsSatisfied(n, done){
+ const prereqs=incoming(n.id).filter(e=>['prerequisite','practice','application'].includes(e.relation));
+ return prereqs.length===0 || prereqs.every(e=>done.has(e.from));
+}
+function daysSince(iso){if(!iso)return 999;return (Date.now()-new Date(iso).getTime())/86400000}
+function reviewInfo(id){
+ const p=progress(), d=p.done[id]||{}, r=p.reviews[id]||{};
+ const stage=+r.stage||0,last=r.at||d.at;
+ const dueIn=(INTERVALS[Math.min(stage,INTERVALS.length-1)]||1)-daysSince(last);
+ return {stage,last,dueIn,due:dueIn<=0};
+}
+function dueReviews(){
+ return [...doneIds()].map(id=>({node:node(id),review:reviewInfo(id)})).filter(x=>x.node&&x.review.due).sort((a,b)=>a.review.dueIn-b.review.dueIn);
+}
+function frontier(){
+ const done=doneIds();
+ return GRAPH.nodes.filter(n=>!done.has(n.id)&&prereqsSatisfied(n,done)).sort((a,b)=>(a.domain+a.title).localeCompare(b.domain+b.title));
+}
+function interleave(items){
+ const seen=new Set(), out=[];
+ for(const n of items){if(!seen.has(n.domain)){out.push(n);seen.add(n.domain)}}
+ for(const n of items){if(!out.includes(n))out.push(n)}
+ return out;
+}
+function xp(){const p=progress();return Object.values(p.done).reduce((s,n)=>s+(+n.xp||0),0)}
+function level(x){return Math.floor(Math.sqrt(x/110))+1}
+function complete(id){
+ const n=node(id);if(!n)return;
+ const p=progress();p.done[id]=p.done[id]||{at:new Date().toISOString(),xp:n.xp||80,title:n.title,kind:n.kind,domain:n.domain};
+ save(p);render();
+}
+function reviewed(id){
+ const n=node(id);if(!n)return;
+ const p=progress();p.done[id]=p.done[id]||{at:new Date().toISOString(),xp:n.xp||80,title:n.title,kind:n.kind,domain:n.domain};
+ const old=p.reviews[id]||{};p.reviews[id]={at:new Date().toISOString(),stage:(+old.stage||0)+1};
+ save(p);render();
+}
+function card(n, mode, extra=''){
+ return `<div class="item"><strong>${n.title}</strong><small>${n.domain} / ${n.kind}. ${n.summary||''}${extra}</small><div class="buttons"><a href="${n.url}">${n.kind==='game'?'Play':'Read'}</a>${mode==='review'?`<button data-review="${n.id}">Mark reviewed</button>`:`<button data-complete="${n.id}">Mark learned</button>`}</div></div>`;
+}
+function render(){
+ const due=dueReviews(), front=frontier(), mixed=interleave(front).slice(0,6);
+ $('[data-xp]').textContent=xp()+' XP';
+ $('[data-level]').textContent='Level '+level(xp());
+ $('[data-known]').textContent=doneIds().size+' nodes';
+ $('.due').innerHTML=due.length?due.slice(0,6).map(x=>card(x.node,'review',` Review stage ${x.review.stage}.`)).join(''):'<div class="empty">No reviews due yet. Learn or play something first.</div>';
+ $('.frontier').innerHTML=front.length?front.slice(0,6).map(n=>card(n,'learn')).join(''):'<div class="empty">No new frontier items. Switch to the global graph and add more concepts.</div>';
+ $('.mixed').innerHTML=mixed.length?mixed.map(n=>card(n,'learn')).join(''):'<div class="empty">Mixed practice will appear after the global library has reachable nodes.</div>';
+ document.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>complete(b.dataset.complete));
+ document.querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>reviewed(b.dataset.review));
+}
+render();
+})();
+"""
+
+
+def learning_payload() -> dict[str, Any]:
+    graph = load_graph_store()
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "source_notes": SOURCE_NOTES,
+        "principles": PRINCIPLES,
+        "ingestion_contract": INGESTION_CONTRACT,
+        "review_intervals_days": [1, 3, 7, 14, 30, 60, 120],
+        "selection_policy": {
+            "priority_order": ["due_reviews", "frontier_nodes", "interleaved_practice", "new_roots"],
+            "frontier_rule": "A node is frontier if it is unlearned and all prerequisite/practice/application parents are learned.",
+            "interleaving_rule": "Pick across domains before repeating the same domain.",
+        },
+        "graph": graph,
+    }
+
+
+def render(payload: dict[str, Any]) -> str:
+    sources = "".join(
+        f"<strong>{s['title']}</strong><p>{s['takeaway']}</p><a href='{s['url']}' target='_blank' rel='noopener'>{s['url']}</a>"
+        for s in payload["source_notes"]
+    )
+    principles = "".join(
+        f"<div class='principle'><strong>{p['name']}</strong><p>{p['rule']}</p><p>{p['implemented_as']}</p></div>"
+        for p in payload["principles"]
+    )
+    engine_json = json.dumps(payload)
+    return f"""<!doctype html><html lang='en'><head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
+<meta name='color-scheme' content='light'>
+<title>LifeOS Learning Engine</title>
+<style>{CSS}</style></head><body><main class='shell'>
+<div class='top'><a href='/learn'>&larr; Field Notes</a><a href='/output/learn/skill-tree.html'>Knowledge Graph</a></div>
+<section class='hero'><div><div class='k'>Math Academy-inspired model</div><h1>Training Queue</h1><p>LifeOS now treats learning as a personal model over a global concept graph: review what is due, advance on the knowledge frontier, and mix practice across domains.</p></div><aside class='sourcebox'>{sources}</aside></section>
+<section class='model'><div class='metric'><span>Personal XP</span><b data-xp>0 XP</b></div><div class='metric'><span>Level</span><b data-level>Level 1</b></div><div class='metric'><span>Known Graph</span><b data-known>0 nodes</b></div></section>
+<section class='queue'><div class='lane'><h2>Due Review</h2><p>Spaced retrieval beats rereading. These come first.</p><div class='due'></div></div><div class='lane'><h2>Frontier</h2><p>New nodes you are ready for from the global graph.</p><div class='frontier'></div></div><div class='lane'><h2>Mixed Practice</h2><p>Interleaved options across domains to avoid fake fluency.</p><div class='mixed'></div></div></section>
+<section class='principles'><h2>System Rules</h2><div class='plist'>{principles}</div></section>
+<section class='ingest'><h2>Book / Doc Ingestion Contract</h2><p>Long sources get chunked into concepts, typed edges, source pointers, blog lessons, and games. The engine stores summaries and locators, not a pasted book.</p><p>Output schema: <code>output/learn/learning-engine.json</code>. Source contract: <code>ingestion_contract</code>.</p></section>
+<div class='foot'>Generated {payload['generated_at']}. This is the control layer; the graph remains the source of truth.</div>
+</main><script>{JS.replace('__ENGINE__', engine_json)}</script></body></html>"""
+
+
+def build() -> dict[str, Any]:
+    OUT.mkdir(parents=True, exist_ok=True)
+    payload = learning_payload()
+    graph = payload["graph"]
+    (OUT / "learning-engine.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    (OUT / "learning-system.html").write_text(render(payload), encoding="utf-8")
+    (OUT / "ingestion-contract.json").write_text(json.dumps(INGESTION_CONTRACT, indent=2), encoding="utf-8")
+    return {
+        "generated_at": payload["generated_at"],
+        "url": "/output/learn/learning-system.html",
+        "engine": "/output/learn/learning-engine.json",
+        "sources": len(SOURCE_NOTES),
+        "principles": len(PRINCIPLES),
+        "nodes": len(graph["nodes"]),
+        "edges": len(graph["edges"]),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build the LifeOS learning engine")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("build", help="Build the learning engine page and JSON model")
+    args = parser.parse_args()
+    if args.cmd == "build":
+        print(json.dumps(build(), indent=2))
+        return 0
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

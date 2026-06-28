@@ -41,8 +41,27 @@ except Exception:
 GAME_CATALOG = list(_GAMES) + list(_DRILLS)
 # Reverse map: which game reinforces which lesson (game is played AFTER the lesson).
 GAME_FOR_LESSON = {g["pairs"]: g for g in GAME_CATALOG if g.get("pairs")}
+try:  # optional progression map for /learn
+    from lifeos_skill_tree import build as build_skill_tree
+except Exception:
+    build_skill_tree = None
+try:  # Math Academy-inspired training queue and ingestion contract
+    from lifeos_learning_engine import build as build_learning_engine
+except Exception:
+    build_learning_engine = None
+try:  # hand-curated long-form tracks for topics that need real depth
+    from lifeos_deep_history import DEEP_LESSONS
+except Exception:
+    DEEP_LESSONS = []
+try:  # mastery curriculum tracks (Math Academy-inspired infrastructure)
+    from lifeos_curriculum import CURRICULUM_LESSONS, render_curriculum_page, track_catalog
+except Exception:
+    CURRICULUM_LESSONS = []
+    track_catalog = lambda: []  # noqa: E731
+    render_curriculum_page = None
 
 OUT = VAULT_ROOT / "output" / "learn"
+GENERATED_LESSONS_PATH = OUT / "generated-lessons.json"
 IMG_CACHE = APP_ROOT / ".cache" / "lesson-images"
 UA = "LifeOS-personal-learning/1.0 (personal morning lessons app)"
 
@@ -565,7 +584,7 @@ LESSONS: list[dict[str, Any]] = [
         "accent": "#5b9bf0",
         "title": "The Bullet Holes That Weren't There",
         "subtitle": "A WWII statistician saw what everyone else missed — and it will change how you read every success story.",
-        "minutes": 4,
+        "minutes": 5,
         "hero_article": "Survivorship bias",
         "lead": "In World War II, the military studied bombers returning from raids to decide where to "
                 "add armour. The planes came back peppered with bullet holes — concentrated on the "
@@ -664,14 +683,45 @@ LESSONS: list[dict[str, Any]] = [
 ]
 
 
+def load_generated_lessons() -> list[dict[str, Any]]:
+    try:
+        data = json.loads(GENERATED_LESSONS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    lessons = data.get("lessons", data) if isinstance(data, dict) else data
+    if not isinstance(lessons, list):
+        return []
+    out: list[dict[str, Any]] = []
+    required = {
+        "id", "emoji", "accent", "title", "subtitle", "minutes", "lead",
+        "sections", "ideas", "game", "did_you_know", "source",
+    }
+    for lesson in lessons:
+        if isinstance(lesson, dict) and required.issubset(lesson):
+            out.append(lesson)
+    return out
+
+
+def lesson_library() -> list[dict[str, Any]]:
+    by_id = {lesson["id"]: lesson for lesson in LESSONS}
+    for lesson in DEEP_LESSONS:
+        by_id[lesson["id"]] = lesson
+    for lesson in CURRICULUM_LESSONS:
+        by_id[lesson["id"]] = lesson
+    for lesson in load_generated_lessons():
+        by_id[lesson["id"]] = lesson
+    return list(by_id.values())
+
+
 # --------------------------------------------------------------------------- #
 # Styling + behaviour (one stylesheet + one script powers every lesson).
 # --------------------------------------------------------------------------- #
 BASE_CSS = """
 :root{--bg:#0b0f0d;--card:#121b16;--line:#22352b;--fg:#eaf6ef;--muted:#8fae9f;--accent:#46d17a}
 *{box-sizing:border-box}
+html,body{width:100%;max-width:100%;overflow-x:hidden}
 body{margin:0;font-family:Georgia,'Iowan Old Style',serif;background:var(--bg);color:var(--fg);line-height:1.72;-webkit-text-size-adjust:100%}
-.wrap{max-width:720px;margin:0 auto;padding:0 20px 110px}
+.wrap{max-width:720px;width:100%;margin:0 auto;padding:0 20px 110px;overflow:hidden}
 .topbar{position:sticky;top:0;background:rgba(11,15,13,.92);backdrop-filter:blur(8px);display:flex;justify-content:space-between;align-items:center;padding:12px 0;font:600 13px/1 system-ui;z-index:9}
 .topbar a{color:var(--muted);text-decoration:none}
 .herowrap{margin:6px 0 0;border-radius:22px;overflow:hidden;border:1px solid var(--line);position:relative;background:var(--card)}
@@ -683,6 +733,7 @@ h1{font-size:36px;line-height:1.12;margin:.1em 0 .15em}
 .meta{font:600 13px/1 system-ui;color:var(--muted);display:flex;gap:16px;margin:14px 0 20px;flex-wrap:wrap}
 .lead{font-size:20px}
 .lead::first-letter{font-size:3.3em;float:left;line-height:.78;padding:6px 10px 0 0;color:var(--accent);font-weight:700}
+.sub,.lead,p,h1,.sec h3,.meta{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .sec{margin:30px 0}
 .sec h3{font-size:24px;margin:0 0 10px}
 .fig{margin:14px 0;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--card);position:relative}
@@ -695,6 +746,7 @@ p{margin:0 0 16px;font-size:18px}
  .sec.withimg .fig{margin:6px 0}
  .sec.withimg .fig img{height:220px}
 }
+@media(max-width:640px){.wrap{width:100vw;max-width:100vw;padding:0 16px 110px}.topbar{position:static;justify-content:flex-start;gap:12px;flex-wrap:wrap}.topbar span{flex-basis:100%;color:var(--muted)}h1{font-size:24px;line-height:1.12;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.sec h3{font-size:22px;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.sub,.lead,p{display:block;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.lead::first-letter{font-size:inherit;float:none;line-height:inherit;padding:0;color:inherit;font-weight:inherit}.meta{width:100%;max-width:100%;overflow-wrap:anywhere}}
 .ideas{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:6px 20px 14px;margin:24px 0}
 .ideas h4{font:700 12px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px}
 .ideas dl{margin:0}
@@ -880,22 +932,22 @@ def _game_html(game: dict) -> str:
     gtype = game["type"]
     prompt = esc(game["prompt"])
     if gtype == "order":
-        items = list(game["items"])
-        correct = ",".join(i[0] for i in items)
-        shown = items[::-1]  # deterministic non-trivial starting order (reversed)
-        lis = "".join(
-            f"<li data-id='{esc(i[0])}'><span>{esc(i[1])}</span>"
-            f"<span class='ctrl'><button class='up' aria-label='up'>▲</button>"
-            f"<button class='dn' aria-label='down'>▼</button></span></li>"
-            for i in shown
+        items = list(game.get("items", []))
+        lis = "".join(f"<li>{esc(i[1])}</li>" for i in items)
+        explain = game.get("explain", "Question the chain before you memorize it.")
+        reveal = (
+            f"<b>Source chain to interrogate:</b><ol>{lis}</ol>"
+            f"<p>{explain}</p>"
+            "<p><b>Do not just order dates.</b> Ask which link is causal, which is only correlation, "
+            "which actor would disagree, and what evidence would change your mind.</p>"
         )
-        return (f"<div class='game order' data-correct='{esc(correct)}'>"
-                f"<div class='tag'>🎮 Challenge · reorder</div><div class='gprompt'>{prompt}</div>"
-                f"<ul class='olist'>{lis}</ul><button class='check'>Check my order</button>"
-                f"<div class='gresult'><span class='status'></span> <span class='detail'>{game['explain']}</span></div></div>")
+        return (f"<div id='game' class='game ponder'>"
+                f"<div class='tag'>🎮 Challenge · question the model</div><div class='gprompt'>{prompt}</div>"
+                f"<button class='check'>Show the source chain</button>"
+                f"<div class='gresult'><span class='status'></span> <span class='detail'>{reveal}</span></div></div>")
     if gtype == "estimate":
         detail = f"Answer: <b>{esc(game['answer'])} {esc(game['unit'])}</b>. {game['reveal']}"
-        return (f"<div class='game estimate' data-answer='{esc(game['answer'])}'>"
+        return (f"<div id='game' class='game estimate' data-answer='{esc(game['answer'])}'>"
                 f"<div class='tag'>🎮 Challenge · estimate</div><div class='gprompt'>{prompt}</div>"
                 f"<input class='gin' type='number' inputmode='numeric' placeholder='Your reasoned guess'>"
                 f"<button class='check'>Reveal</button>"
@@ -903,7 +955,7 @@ def _game_html(game: dict) -> str:
     if gtype == "pd":
         rounds = int(game.get("rounds", 8))
         opp = esc(game.get("opponent", "Tit-for-Tat"))
-        return (f"<div class='game pd' data-rounds='{rounds}'>"
+        return (f"<div id='game' class='game pd' data-rounds='{rounds}'>"
                 f"<div class='tag'>🎮 Play · Prisoner's Dilemma</div><div class='gprompt'>{prompt}</div>"
                 f"<div class='pd-scores'><span>You <b class='you'>0</b></span>"
                 f"<span>{opp} <b class='opp'>0</b></span><span>Round <b class='rnd'>1</b>/{rounds}</span></div>"
@@ -913,7 +965,7 @@ def _game_html(game: dict) -> str:
                 f"<button class='pd-reset' style='display:none'>Play again</button>"
                 f"<div class='gresult'><span class='status'></span> <span class='detail'>{game['reveal']}</span></div></div>")
     if gtype == "monty":
-        return ("<div class='game monty'>"
+        return ("<div id='game' class='game monty'>"
                 f"<div class='tag'>🎮 Play · Monty Hall</div><div class='gprompt'>{prompt}</div>"
                 "<div class='monty-stats'>Switched <b class='sw'>0/0</b> · Stayed <b class='st'>0/0</b></div>"
                 "<div class='doors'><button class='door' data-i='0'>🚪</button>"
@@ -924,7 +976,7 @@ def _game_html(game: dict) -> str:
                 "<button class='monty-next' style='display:none'>Next round</button>"
                 f"<div class='gresult'><span class='status'></span> <span class='detail'>{game['reveal']}</span></div></div>")
     # ponder
-    return (f"<div class='game ponder'>"
+    return (f"<div id='game' class='game ponder'>"
             f"<div class='tag'>🎮 Challenge · think it through</div><div class='gprompt'>{prompt}</div>"
             f"<button class='check'>Reveal the answer</button>"
             f"<div class='gresult'><span class='status'></span> <span class='detail'>{game['reveal']}</span></div></div>")
@@ -953,127 +1005,397 @@ def _play_cta(lesson_id: str) -> str:
     )
 
 
+PROGRESS_JS = r"""
+(function(){
+const KEY='lifeos.learning.progress.v1';
+const node=window.LIFEOS_NODE;
+const tg=window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp:null;
+if(tg){try{tg.ready();tg.expand();tg.MainButton.setText('Lock into graph');tg.MainButton.show();}catch(e){}}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
+function save(p){localStorage.setItem(KEY,JSON.stringify(p))}
+function xp(p){return Object.values(p.done||{}).reduce((s,n)=>s+(+n.xp||0),0)}
+function level(x){return Math.floor(Math.sqrt(x/110))+1}
+function award(id,title,kind,xpValue){
+ const p=load();p.done=p.done||{};
+ if(!p.done[id])p.done[id]={at:new Date().toISOString(),title,xp:xpValue,kind};
+ save(p);return p;
+}
+async function syncProgress(){
+ if(!tg||!tg.initData||!node)return;
+ try{
+  const r=await fetch('/api/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lesson_id:node.id,node_id:node.id,score:100,result:'complete',initData:tg.initData})});
+  const data=await r.json();
+  if(data&&data.ok){document.querySelectorAll('[data-lifeos-level]').forEach(el=>el.textContent='Level '+data.level+' / '+data.total_xp+' XP');try{tg.HapticFeedback.notificationOccurred('success');tg.MainButton.setText('Saved to graph');}catch(e){}}
+  else if(data&&!data.ok){try{tg.HapticFeedback.notificationOccurred('error');}catch(e){}}
+ }catch(e){try{tg.HapticFeedback.notificationOccurred('error');}catch(_){}}
+}
+function update(){
+ const p=load(),done=!!(p.done&&node&&p.done[node.id]),total=xp(p);
+ document.querySelectorAll('[data-lifeos-level]').forEach(el=>el.textContent='Level '+level(total)+' / '+total+' XP');
+ document.querySelectorAll('[data-complete-node]').forEach(btn=>{
+  btn.textContent=done?'Completed':'Mark complete + '+node.xp+' XP';
+  btn.disabled=done;
+ });
+}
+document.querySelectorAll('[data-complete-node]').forEach(btn=>btn.addEventListener('click',()=>{
+ if(!node)return;award(node.id,node.title,node.kind,node.xp);update();syncProgress();
+}));
+if(tg){try{tg.MainButton.onClick(()=>{if(!node)return;award(node.id,node.title,node.kind,node.xp);update();syncProgress();});}catch(e){}}
+update();
+})();
+"""
+
+
+
+def _source_entries(lesson: dict[str, Any]) -> list[tuple[str, str, str]]:
+    """Return unique (label, url, note) entries for the bottom source trail."""
+    entries: list[tuple[str, str, str]] = []
+
+    def add(raw: Any) -> None:
+        label = url = note = ""
+        if isinstance(raw, dict):
+            url = str(raw.get("url") or "").strip()
+            label = str(raw.get("label") or raw.get("title") or url or "Source").strip()
+            note = str(raw.get("note") or "").strip()
+        elif isinstance(raw, (list, tuple)) and len(raw) >= 2:
+            label = str(raw[0] or "Source").strip()
+            url = str(raw[1] or "").strip()
+        if url and (url.startswith("http://") or url.startswith("https://")):
+            key = url.rstrip("/")
+            if key not in {u.rstrip("/") for _, u, _ in entries}:
+                entries.append((label or url, url, note))
+
+    for raw in lesson.get("sources") or []:
+        add(raw)
+    add(lesson.get("source"))
+    return entries
+
+
+def _source_trail_html(lesson: dict[str, Any]) -> str:
+    sources = _source_entries(lesson)
+    if not sources:
+        return ""
+    rows = []
+    for label, url, note in sources:
+        note_html = f"<span>{esc(note)}</span>" if note else ""
+        rows.append(
+            f"<li><a href='{esc(url)}' target='_blank' rel='noopener noreferrer'>{esc(label)}</a>{note_html}</li>"
+        )
+    return (
+        "<section class='sourceTrail'><h3>Sources and further reading</h3>"
+        "<p>These are the links used as the evidence trail for this page. Treat the lesson as a map, then open the sources when a claim matters.</p>"
+        f"<ul>{''.join(rows)}</ul></section>"
+    )
+
+
+def _thinking_questions_html(lesson: dict[str, Any]) -> str:
+    meta = lesson.get("curriculum") or {}
+    specific = list(meta.get("thinking_questions") or lesson.get("thinking_questions") or lesson.get("questions") or [])
+    title = str(lesson.get("title") or "this idea")
+    generic = [
+        f"What is the strongest claim in {title}, and what evidence would actually support it?",
+        "Which part is fact, which part is interpretation, and which part is analogy?",
+        "What would a smart skeptic say is missing, overstated, or backwards?",
+        "What would change your mind after reading the linked sources?",
+        "Where would applying this idea to your life or work become dangerous?",
+    ]
+    questions: list[str] = []
+    for q in specific + generic:
+        q = str(q).strip()
+        if q and q not in questions:
+            questions.append(q)
+        if len(questions) >= 7:
+            break
+    items = "".join(f"<li>{esc(q)}</li>" for q in questions)
+    return (
+        "<section class='questionBlock'><h3>Questions worth arguing with</h3>"
+        "<p>Do not memorize this as trivia. Use these to test the claim, the evidence, and your own assumptions.</p>"
+        f"<ul>{items}</ul></section>"
+    )
+
+
+def _reading_note_html(lesson: dict[str, Any]) -> str:
+    return (
+        "<section class='readingNote'><h3>How to read this page</h3>"
+        "<p>Read it as a set of claims, not as sacred text. First get the model. Then check the source trail. "
+        "Finally, write one objection, one application, and one uncertainty you would need to verify before teaching it to someone else.</p>"
+        "</section>"
+    )
+
+def _curriculum_extra_html(lesson: dict[str, Any]) -> str:
+    meta = lesson.get("curriculum")
+    if not meta:
+        return ""
+    questions = meta.get("thinking_questions") or []
+    practice = meta.get("practice_prompt") or ""
+    parts = ["<div class='curriculum-extra'>"]
+    if questions:
+        items = "".join(f"<li>{esc(q)}</li>" for q in questions)
+        parts.append(
+            f"<div class='thinkbox'><h4>Thinking questions</h4><ul>{items}</ul></div>"
+        )
+    if practice:
+        parts.append(
+            f"<div class='practicebox'><h4>Practice</h4><p>{esc(practice)}</p></div>"
+        )
+    if meta.get("collection"):
+        parts.append(
+            f"<p class='curmeta'>Track: {esc(meta.get('track_name', ''))} · "
+            f"{esc(meta['collection'])}</p>"
+        )
+    parts.append("</div>")
+    return "".join(parts)
+
+
 def render_lesson(lesson: dict[str, Any], day: str) -> str:
     accent = lesson["accent"]
     src_label, src_url = lesson["source"]
+    is_curriculum = bool(lesson.get("curriculum"))
+    kicker = (
+        f"{esc(lesson['emoji'])} Curriculum · Mastery Track"
+        if is_curriculum
+        else f"{esc(lesson['emoji'])} Morning Lesson"
+    )
+    progress_node = {
+        "id": lesson["id"],
+        "title": lesson["title"],
+        "kind": "lesson",
+        "xp": 120 if is_curriculum else 80,
+    }
+    curriculum_css = """
+.curriculum-extra{margin:24px 0}.thinkbox,.practicebox{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:16px 18px;margin:12px 0}
+.thinkbox h4,.practicebox h4{font:700 12px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.thinkbox ul{margin:0;padding-left:20px;font-size:17px;color:#cfe7da}
+.practicebox p{margin:0;font-size:17px;color:#cfe7da}
+.curmeta{color:var(--muted);font:650 13px/1.4 system-ui;margin-top:8px}
+""" if is_curriculum else ""
+    curriculum_block = _curriculum_extra_html(lesson)
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
 <meta name='color-scheme' content='dark'>
+<script src='https://telegram.org/js/telegram-web-app.js'></script>
 <title>{esc(lesson['title'])} — LifeOS Learn</title>
-<style>{BASE_CSS}
+<style>{BASE_CSS}{curriculum_css}
+.completebar{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:16px;background:var(--card);padding:14px 16px;margin:24px 0}}
+.completebar b{{display:block;font:800 17px/1.2 system-ui}}.completebar span{{display:block;color:var(--muted);font:650 13px/1.35 system-ui;margin-top:4px}}
+.completebar button{{border:0;border-radius:12px;background:var(--accent);color:#051018;font:900 14px/1 system-ui;padding:12px 14px;cursor:pointer;white-space:nowrap}}
+.completebar button:disabled{{opacity:.65;cursor:default}}
+.readingNote,.questionBlock,.sourceTrail{{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:18px 20px;margin:24px 0}}
+.readingNote h3,.questionBlock h3,.sourceTrail h3{{margin:0 0 8px;font:850 22px/1.1 system-ui;color:var(--fg)}}
+.readingNote p,.questionBlock p,.sourceTrail p{{margin:0 0 10px;color:#cfe7da;font-size:16px;line-height:1.55}}
+.questionBlock ul,.sourceTrail ul{{margin:0;padding-left:20px;color:#dceddf;font-size:16px;line-height:1.55}}
+.sourceTrail li+li,.questionBlock li+li{{margin-top:7px}}
+.sourceTrail a{{color:#9fd5ff;font-weight:850}}
+.sourceTrail span{{display:block;color:var(--muted);font-size:13px;margin-top:2px}}
+@media(max-width:640px){{.completebar{{align-items:flex-start;flex-direction:column}}.completebar button{{width:100%}}}}
 :root{{--accent:{accent}}}</style></head>
 <body><div class='wrap'>
-<div class='topbar'><a href='/learn'>&larr; Today's lessons</a><span>{esc(day)}</span></div>
+<div class='topbar'><a href='/learn'>&larr; Today's lessons</a><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/output/learn/learning-system.html'>Training queue</a><span>{esc(day)}</span></div>
 {_hero_html(lesson)}
-<div class='kicker'>{esc(lesson['emoji'])} Morning Lesson</div>
+<div class='kicker'>{kicker}</div>
 <h1>{esc(lesson['title'])}</h1>
 <p class='sub'>{esc(lesson['subtitle'])}</p>
-<div class='meta'><span>⏱ {esc(lesson['minutes'])} min read</span><span>Worth more than the feed</span></div>
+<div class='meta'><span>⏱ {esc(max(5, int(lesson.get('minutes') or 5)))} min read</span><span>Worth more than the feed</span></div>
 <p class='lead'>{lesson['lead']}</p>
 {_sections_html(lesson['sections'])}
+{_reading_note_html(lesson)}
 {_ideas_html(lesson['ideas'])}
+{curriculum_block}
+{_thinking_questions_html(lesson)}
 {_game_html(lesson['game'])}
 <div class='reveal'><button>💡 Did you know? Tap to reveal</button><div class='txt'>{lesson['did_you_know']}</div></div>
 {_play_cta(lesson['id'])}
+<div class='completebar'><div><b>Lock this node into your knowledge graph</b><span data-lifeos-level>Level 1 / 0 XP</span></div><button data-complete-node>Mark complete</button></div>
+{_source_trail_html(lesson)}
 <div class='foot'>
-<p><span class='pill'>Go deeper</span> &nbsp; Primary source: <a href='{esc(src_url)}' target='_blank' rel='noopener'>{src_label}</a></p>
 <p>{esc(lesson.get('next',''))}</p>
 <p>Stuck or curious? Ask your LifeOS agent to go deeper on anything here — it's your teacher.</p>
 </div>
 </div>
-<script>{BASE_JS}</script></body></html>"""
+<script>window.LIFEOS_NODE={json.dumps(progress_node)};</script><script>{PROGRESS_JS}</script><script>{BASE_JS}</script></body></html>"""
+
+
+def _rotate_pick(pool: list[dict[str, Any]], today: date, salt: int = 0) -> dict[str, Any] | None:
+    if not pool:
+        return None
+    idx = (today.toordinal() + salt) % len(pool)
+    return pool[idx]
 
 
 def daily_set(today: date) -> list[dict[str, Any]]:
-    """Featured history lesson first, then 3 rotating picks so each day differs."""
-    by_id = {l["id"]: l for l in LESSONS}
-    featured = by_id["story-of-civilization"]
-    rest = [l for l in LESSONS if l["id"] != featured["id"]]
-    n = len(rest)
-    start = today.toordinal() % n
-    rotated = [rest[(start + i) % n] for i in range(min(3, n))]
-    return [featured, *rotated]
+    """Balanced morning queue: curriculum domains, deep history, and review hooks."""
+    library = lesson_library()
+    by_id = {l["id"]: l for l in library}
+    curriculum = [l for l in library if str(l.get("track", "")).startswith("curriculum")]
+    deep = [l for l in library if l.get("track") == "deep-history"]
+    history_core = [by_id["story-of-civilization"]] if "story-of-civilization" in by_id else []
+
+    def curriculum_pool(domain: str) -> list[dict[str, Any]]:
+        return [l for l in curriculum if l.get("curriculum", {}).get("domain") == domain]
+
+    invention_pool = curriculum_pool("invention")
+    statecraft_pool = curriculum_pool("statecraft")
+    target_count = 6 + (1 if invention_pool else 0) + (1 if statecraft_pool else 0)
+    picks: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add(lesson: dict[str, Any] | None) -> None:
+        if lesson and lesson["id"] not in seen:
+            picks.append(lesson)
+            seen.add(lesson["id"])
+
+    add(_rotate_pick(curriculum_pool("math"), today, 0))
+    add(_rotate_pick(curriculum_pool("physics"), today, 1))
+    add(_rotate_pick(invention_pool, today, 2))
+    add(_rotate_pick(statecraft_pool, today, 3))
+    add(_rotate_pick(curriculum_pool("history"), today, 4) or _rotate_pick(history_core, today, 4))
+    add(_rotate_pick(curriculum_pool("startup"), today, 5))
+    add(_rotate_pick(curriculum_pool("thinking"), today, 6))
+    add(_rotate_pick(deep, today, 7))
+    if len(picks) < target_count and len(deep) > 1:
+        add(_rotate_pick(deep, today, 8))
+    elif len(picks) < target_count and history_core:
+        add(history_core[0])
+
+    if not picks:
+        rest = [l for l in library if not l.get("generated")]
+        n = len(rest)
+        start = today.toordinal() % n if n else 0
+        return [rest[(start + i) % n] for i in range(min(target_count, n))] if n else []
+    return picks[:target_count]
+
 
 
 def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], today: date) -> str:
+    """Render /learn as a generated blog/publication issue."""
     day = today.strftime("%A, %B %d").replace(" 0", " ")
-    cards = []
-    for l in daily:
-        cards.append(
-            f"<a class='lcard' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
-            f"<div class='lemoji'>{esc(l['emoji'])}</div><div class='ltext'>"
-            f"<div class='ltitle'>{esc(l['title'])}</div><div class='lsub'>{esc(l['subtitle'])}</div>"
-            f"<div class='lmeta'>⏱ {esc(l['minutes'])} min · tap to read</div></div></a>"
-        )
-    daily_ids = {l["id"] for l in daily}
-    others = [l for l in library if l["id"] not in daily_ids]
-    rows = "".join(
-        f"<a class='lrow' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
-        f"<span class='le'>{esc(l['emoji'])}</span><span class='lt'>{esc(l['title'])}</span>"
-        f"<span class='lm'>{esc(l['minutes'])}m</span></a>"
-        for l in others
+    featured = daily[0]
+    side_posts = "".join(
+        f"<a class='post' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
+        f"<span class='post-k'>{esc(l['emoji'])} {esc(l['minutes'])} min read</span>"
+        f"<strong>{esc(l['title'])}</strong><span>{esc(l['subtitle'])}</span></a>"
+        for l in daily[1:]
     )
-    browse = (f"<h2 style='margin-top:34px'>Browse all {len(library)} lessons</h2>"
-              f"<div class='browse'>{rows}</div>") if others else ""
-    games_html = ""
-    if GAME_CATALOG:
-        gcards = "".join(
-            f"<a class='gcard' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}' style='--c:{g['accent']}'>"
-            f"<div class='gemoji'>{esc(g['emoji'])}</div><div class='gtext'>"
-            f"<div class='gtitle'>{esc(g['title'])} <span class='gbadge'>PLAY</span></div>"
-            f"<div class='gblurb'>{esc(g['blurb'])}</div></div></a>"
-            for g in GAME_CATALOG
-        )
-        games_html = (
-            "<h2 style='margin-top:34px'>🎮 Replay arcade</h2>"
-            "<p class='intro' style='font-size:15px;margin-bottom:4px'>Already learned these? "
-            "Drop in and play to keep them sharp.</p>"
-            f"<div class='games'>{gcards}</div>"
+    daily_ids = {l["id"] for l in daily}
+    archive_rows = "".join(
+        f"<a class='archive-row' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
+        f"<span>{esc(l['emoji'])}</span><strong>{esc(l['title'])}</strong><em>{esc(l['minutes'])} min</em></a>"
+        for l in library
+        if l["id"] not in daily_ids
+    )
+    archive = f"<section class='archive'><h2>Archive</h2><div>{archive_rows}</div></section>" if archive_rows else ""
+    games = "".join(
+        f"<a class='game' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}' style='--c:{g['accent']}'>"
+        f"<span>{esc(g['emoji'])}</span><strong>{esc(g['title'])}</strong><small>{esc(g['blurb'])}</small></a>"
+        for g in GAME_CATALOG
+    )
+    games_html = (
+        "<section class='arcade'><div class='section-head'><h2>Practice Lab</h2>"
+        "<p>Games generated from the ideas, not quiz cards.</p></div>"
+        f"<div class='games'>{games}</div></section>"
+    ) if games else ""
+    graph_link = (
+        "<a class='graph-link' href='/output/learn/skill-tree.html'>"
+        "<span>Personal Knowledge Graph</span><strong>Open your learning map</strong>"
+        "<em>Only learned nodes enter your graph; the library stays underneath.</em></a>"
+        "<a class='graph-link engine' href='/output/learn/learning-system.html'>"
+        "<span>Training Queue</span><strong>Review, frontier, mixed practice</strong>"
+        "<em>Math Academy-style scheduling over your personal graph.</em></a>"
+    )
+    curriculum_tracks = track_catalog()
+    curriculum_html = ""
+    if curriculum_tracks:
+        track_cards = []
+        for tr in curriculum_tracks:
+            unit_links = "".join(
+                f"<a class='cur-unit' href='{esc(u['url'])}'>{esc(u['title'])}"
+                f" <em>{esc(u.get('minutes', ''))}m</em></a>"
+                for u in tr.get("units", [])
+            )
+            track_cards.append(
+                f"<div class='cur-track' style='--c:{tr['color']}'>"
+                f"<div class='cur-track-head'><strong>{esc(tr['name'])}</strong>"
+                f"<span>{tr['unit_count']} units · {esc(tr.get('domain', ''))}</span></div>"
+                f"<div class='cur-units'>{unit_links}</div></div>"
+            )
+        curriculum_html = (
+            "<section class='curriculum'><div class='section-head'>"
+            "<h2>Curriculum / Mastery Tracks</h2>"
+            "<p>Prerequisite skill tree, deep sections, thinking questions — original LifeOS infrastructure. "
+            "<a href='/output/learn/curriculum.html'>Full curriculum overview →</a></p>"
+            "</div>"
+            f"<div class='cur-tracks'>{''.join(track_cards)}</div></section>"
         )
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
-<meta name='color-scheme' content='dark'>
-<title>LifeOS — Learn this morning</title>
-<style>{BASE_CSS}
-.lcard{{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:18px;padding:16px;margin:14px 0;background:var(--card);transition:.15s}}
-.lcard:hover{{transform:translateY(-2px);border-color:var(--c)}}
-.lemoji{{font-size:40px;line-height:1}}
-.ltitle{{font-size:22px;font-weight:700;font-family:Georgia,serif}}
-.lsub{{color:var(--muted);font-size:16px;margin:3px 0 7px;font-family:system-ui}}
-.lmeta{{font:600 13px/1 system-ui;color:var(--c)}}
-.intro{{color:var(--muted);font-size:18px}}
-.browse .lrow{{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:11px 14px;margin:8px 0;background:var(--card)}}
-.browse .le{{font-size:24px}} .browse .lt{{flex:1;font:600 17px system-ui}} .browse .lm{{color:var(--muted);font:600 13px system-ui}}
-.gcard{{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--fg);border:1px solid var(--c);border-radius:18px;padding:16px;margin:12px 0;background:linear-gradient(110deg,rgba(108,198,255,.10),var(--card));transition:.15s}}
-.gcard:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(108,198,255,.12)}}
-.gemoji{{font-size:40px;line-height:1}}
-.gtitle{{font:800 21px/1 system-ui;display:flex;align-items:center;gap:10px}}
-.gbadge{{font:800 10px/1 system-ui;letter-spacing:.12em;color:#04140b;background:var(--c);border-radius:6px;padding:4px 7px}}
-.gblurb{{color:var(--muted);font-size:16px;margin-top:5px;font-family:system-ui}}
+<meta name='color-scheme' content='light'>
+<title>LifeOS Field Notes</title>
+<style>
+*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;overflow-x:hidden;background:#f7f5f0;color:#151719;font-family:Inter,system-ui,-apple-system,sans-serif}}a{{color:inherit}}
+.wrap{{width:min(1080px,calc(100% - 32px));margin:0 auto;padding:18px 0 46px}}
+.topbar{{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #d8d3c8;padding:0 0 14px;margin-bottom:28px;color:#5f665f;font:800 13px/1 system-ui;flex-wrap:wrap}}
+.topbar a{{text-decoration:none;color:#5f665f}}.mast{{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;border-bottom:3px solid #151719;padding-bottom:22px;margin-bottom:26px}}
+.mast h1{{font:800 clamp(44px,8vw,86px)/.9 Georgia,serif;margin:0;color:#151719;letter-spacing:0}}.mast p{{margin:12px 0 0;color:#4e5651;font:500 18px/1.55 Georgia,serif;max-width:720px}}
+.issue{{font:800 12px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;color:#6a5b35;text-align:right}}
+.bloggrid{{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:24px;align-items:start}}
+.feature{{display:grid;grid-template-columns:120px 1fr;gap:22px;text-decoration:none;color:#151719;border-bottom:1px solid #d8d3c8;padding-bottom:24px}}.feature .emoji{{font-size:92px;line-height:1;filter:drop-shadow(0 12px 20px rgba(21,23,25,.12))}}
+.feature-k{{font:800 12px/1 system-ui;letter-spacing:.14em;text-transform:uppercase;color:#a76d16}}.feature h2{{font:800 clamp(34px,5vw,58px)/.95 Georgia,serif;margin:8px 0 12px;color:#151719;letter-spacing:0}}
+.feature p{{font:500 19px/1.58 Georgia,serif;color:#3f4743;margin:0 0 12px}}.readline{{font:800 13px/1 system-ui;color:#a76d16}}
+.side{{border-left:1px solid #d8d3c8;padding-left:22px}}.section-head h2,.archive h2{{font:800 22px/1 Georgia,serif;margin:0 0 4px;color:#151719}}.section-head p{{margin:0 0 14px;color:#636b66;font:600 14px/1.45 system-ui}}
+.post{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:14px 0}}.post-k{{display:block;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}}.post strong{{display:block;font:800 22px/1.08 Georgia,serif;margin:6px 0;color:#151719}}.post span:last-child{{display:block;color:#59605c;font:500 15px/1.45 Georgia,serif}}
+.levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fffaf0;padding:14px;margin:22px 0}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:linear-gradient(90deg,#1f9d78,#4d7cff,#d86b8a)}}
+.graph-link{{display:block;text-decoration:none;color:#151719;border:1px solid #151719;background:#fff;padding:14px;margin:16px 0 0}}.graph-link.engine{{border-color:#1f9d78}}.graph-link span{{font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#4d7cff}}.graph-link.engine span{{color:#1f9d78}}.graph-link strong{{display:block;font:800 22px/1 Georgia,serif;margin:6px 0}}.graph-link em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal;overflow-wrap:break-word}}
+.arcade,.archive,.curriculum{{margin-top:34px;border-top:3px solid #151719;padding-top:18px}}.games{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}.game{{display:block;text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;border-left:4px solid var(--c);padding:13px}}.game span{{font-size:24px}}.game strong{{display:block;font:800 17px/1.1 system-ui;margin:7px 0 4px}}.game small{{display:block;color:#5f665f;font:600 13px/1.35 system-ui}}
+.cur-tracks{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.cur-track{{background:#fff;border:1px solid #d8d3c8;border-left:4px solid var(--c);padding:14px}}.cur-track-head strong{{display:block;font:800 18px/1.1 system-ui}}.cur-track-head span{{display:block;color:#5f665f;font:650 12px/1.35 system-ui;margin-top:4px}}.cur-units{{margin-top:10px}}.cur-unit{{display:block;text-decoration:none;color:#151719;font:750 15px/1.35 system-ui;padding:7px 0;border-top:1px solid #ece8df}}.cur-unit em{{font:700 11px/1 system-ui;color:#77736a;font-style:normal;margin-left:6px}}
+.archive-row{{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:12px 0}}.archive-row strong{{font:750 17px/1.2 system-ui}}.archive-row em{{font:700 12px/1 system-ui;color:#77736a;font-style:normal}}.foot{{border-top:1px solid #d8d3c8;color:#676b66;margin-top:32px;padding-top:16px;font:600 13px/1.45 system-ui}}
+@media(max-width:760px){{.wrap{{width:min(620px,calc(100% - 32px));overflow:hidden}}.topbar{{justify-content:flex-start}}.mast{{display:block}}.mast h1{{font-size:46px}}.mast p{{display:block;width:31ch;max-width:100%;white-space:normal;overflow-wrap:break-word;font-size:17px}}.issue{{text-align:left;margin-top:20px}}.bloggrid{{display:block}}.feature{{display:block;min-width:0}}.feature article{{display:block;width:100%;min-width:0}}.feature h2{{font-size:36px;max-width:13ch;overflow-wrap:break-word}}.feature p{{display:block;width:31ch;max-width:100%;white-space:normal;font-size:17px;overflow-wrap:break-word}}.feature .emoji{{font-size:72px;margin-bottom:8px}}.side{{border-left:0;padding-left:0;margin-top:22px}}.games,.cur-tracks{{grid-template-columns:1fr}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
 </style></head><body><div class='wrap'>
-<div class='topbar'><span>🌅 LifeOS Learn</span><a href='/m'>Control →</a></div>
-<div class='kicker'>{esc(day)}</div>
-<h1>Learn something this morning</h1>
-<p class='intro'>Read a short lesson instead of the feed — each ends with a game to lock in what you just learned.</p>
-{''.join(cards)}
-{browse}
+<div class='topbar'><span>LifeOS Field Notes</span><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/m'>Control</a></div>
+<header class='mast'><div><h1>Field Notes</h1><p>Generated essays for the morning: read the idea like a blog post, then use a game to make it stick.</p></div><div class='issue'>{esc(day)}</div></header>
+<main class='bloggrid'><section>
+<a class='feature' href='/output/learn/{esc(featured['id'])}.html' style='--c:{featured['accent']}'>
+<div class='emoji'>{esc(featured['emoji'])}</div><article><div class='feature-k'>Today's lead essay</div><h2>{esc(featured['title'])}</h2><p>{esc(featured['subtitle'])}</p><div class='readline'>{esc(featured['minutes'])} min read -></div></article></a>
+<div class='levelbox'><div><b data-level-label>Level 1</b><span data-xp-label>0 XP earned in this browser</span></div><div class='levelbar'><i data-xp-bar></i></div></div>
+{graph_link}
+</section><aside class='side'><div class='section-head'><h2>Today's Posts</h2><p>The rest of this morning's issue.</p></div>{side_posts}</aside></main>
+{archive}
+{curriculum_html}
 {games_html}
-<div class='foot'><p>A fresh set is featured every morning by LifeOS. Every lesson works offline once it loads.</p></div>
-</div></body></html>"""
+<div class='foot'>A fresh issue is generated every morning by LifeOS. Each article points toward practice, not passive reading.</div>
+</div><script>
+(function(){{
+const KEY='lifeos.learning.progress.v1';
+function load(){{try{{return JSON.parse(localStorage.getItem(KEY)||'{{}}')}}catch{{return {{}}}}}}
+function xp(p){{return Object.values(p.done||{{}}).reduce((s,n)=>s+(+n.xp||0),0)}}
+function level(x){{return Math.floor(Math.sqrt(x/110))+1}}
+function next(l){{return l*l*110}}
+const total=xp(load()),lvl=level(total),prev=next(lvl-1),goal=next(lvl),pct=Math.max(0,Math.min(100,((total-prev)/(goal-prev))*100));
+document.querySelector('[data-level-label]').textContent='Level '+lvl;
+document.querySelector('[data-xp-label]').textContent=total+' XP earned in this browser';
+document.querySelector('[data-xp-bar]').style.width=pct+'%';
+}})();
+</script></body></html>"""
 
 
 def build(today: date | None = None) -> dict[str, Any]:
     today = today or date.today()
     OUT.mkdir(parents=True, exist_ok=True)
     day_label = today.strftime("%A, %B %d").replace(" 0", " ")
+    library = lesson_library()
     # Render the entire library so every lesson is reachable by URL (cached images
     # keep this cheap); the index features today's rotating set.
-    for l in LESSONS:
+    for l in library:
         (OUT / f"{l['id']}.html").write_text(render_lesson(l, day_label), encoding="utf-8")
+    if build_skill_tree:
+        build_skill_tree()
+    if build_learning_engine:
+        build_learning_engine()
     featured = daily_set(today)
-    (OUT / "index.html").write_text(render_index(featured, LESSONS, today), encoding="utf-8")
+    (OUT / "index.html").write_text(render_index(featured, library, today), encoding="utf-8")
+    if render_curriculum_page:
+        (OUT / "curriculum.html").write_text(render_curriculum_page(), encoding="utf-8")
     manifest = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "date": today.isoformat(),
@@ -1082,7 +1404,7 @@ def build(today: date | None = None) -> dict[str, Any]:
              "minutes": l["minutes"], "url": f"/output/learn/{l['id']}.html"}
             for l in featured
         ],
-        "library_count": len(LESSONS),
+        "library_count": len(library),
         "index": "/learn",
     }
     (OUT / "today.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -1099,7 +1421,7 @@ def main() -> int:
         print(json.dumps(build(), indent=2))
         return 0
     if args.cmd == "list":
-        print(json.dumps([{"id": l["id"], "title": l["title"]} for l in LESSONS], indent=2))
+        print(json.dumps([{"id": l["id"], "title": l["title"]} for l in lesson_library()], indent=2))
         return 0
     return 1
 
