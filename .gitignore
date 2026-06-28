@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .env
+.cache/
+loop/
 output/
 data/
 *.log
