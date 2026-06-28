@@ -1379,6 +1379,63 @@ def daily_set(today: date) -> list[dict[str, Any]]:
 
 
 
+
+def _lesson_categories(lesson: dict[str, Any]) -> list[str]:
+    """Broad reading categories used by the browser recommendation engine."""
+    meta = lesson.get("curriculum") or {}
+    domain = str(meta.get("domain") or lesson.get("domain") or "").lower()
+    track = str(lesson.get("track") or meta.get("track_id") or "").lower()
+    title = str(lesson.get("title") or "").lower()
+    text = " ".join([domain, track, title, str(lesson.get("subtitle") or "").lower()])
+    cats: list[str] = []
+
+    def add(cat: str) -> None:
+        if cat not in cats:
+            cats.append(cat)
+
+    if domain in {"history", "statecraft"} or "deep-history" in track or any(
+        word in text for word in ["civilization", "caesar", "rome", "tesla", "alexandria", "napoleon", "churchill", "gandhi"]
+    ):
+        add("history")
+    if domain == "thinking" or any(
+        word in text for word in ["philosophy", "socrates", "plato", "aristotle", "ethics", "stoic", "belief", "logic"]
+    ):
+        add("philosophy")
+    if domain in {"math", "physics", "invention"} or any(
+        word in text for word in ["science", "quantum", "calculus", "algebra", "geometry", "energy", "electric", "physics", "proof"]
+    ):
+        add("science")
+    if domain == "startup" or track.startswith("pg-") or "paul graham" in text or "startup" in text:
+        add("startup")
+    if domain == "statecraft" or any(
+        word in text for word in ["strategy", "power", "campaign", "war", "founder", "moat", "distribution"]
+    ):
+        add("strategy")
+    if not cats:
+        add("general")
+    return cats
+
+
+def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) -> list[dict[str, Any]]:
+    catalog: list[dict[str, Any]] = []
+    for lesson in library:
+        lesson_id = str(lesson.get("id") or "")
+        if not lesson_id:
+            continue
+        meta = lesson.get("curriculum") or {}
+        catalog.append({
+            "id": lesson_id,
+            "title": str(lesson.get("title") or lesson_id),
+            "subtitle": str(lesson.get("subtitle") or ""),
+            "minutes": int(lesson.get("minutes") or 10),
+            "emoji": str(lesson.get("emoji") or "•"),
+            "url": f"/output/learn/{lesson_id}.html",
+            "categories": _lesson_categories(lesson),
+            "domain": str(meta.get("domain") or lesson.get("domain") or lesson.get("track") or "general"),
+            "daily": lesson_id in daily_ids,
+        })
+    return catalog
+
 def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], today: date) -> str:
     """Render /learn as a generated blog/publication issue."""
     day = today.strftime("%A, %B %d").replace(" 0", " ")
@@ -1390,6 +1447,14 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
         for l in daily[1:]
     )
     daily_ids = {l["id"] for l in daily}
+    rec_catalog = _recommendation_catalog(library, daily_ids)
+    rec_data = json.dumps(rec_catalog, separators=(",", ":")).replace("</", "<\\/")
+    rec_fallback = "".join(
+        f"<a class='rec-card' href='/output/learn/{esc(l['id'])}.html'>"
+        f"<span>{esc(l['emoji'])} {esc(l['minutes'])} min</span>"
+        f"<strong>{esc(l['title'])}</strong><em>{esc(l['subtitle'])}</em></a>"
+        for l in daily[:3]
+    )
     archive_rows = "".join(
         f"<a class='archive-row' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
         f"<span>{esc(l['emoji'])}</span><strong>{esc(l['title'])}</strong><em>{esc(l['minutes'])} min</em></a>"
@@ -1439,6 +1504,43 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
             "</div>"
             f"<div class='cur-tracks'>{''.join(track_cards)}</div></section>"
         )
+    recommendation_js = r"""<script>
+(function(){
+const CATALOG=window.LIFEOS_REC_CATALOG||[];
+const PROGRESS_KEY='lifeos.learning.progress.v1';
+const CAT_KEY='lifeos.recs.category.v1';
+const note=document.querySelector('[data-rec-note]');
+const list=document.querySelector('[data-rec-list]');
+const buttons=[...document.querySelectorAll('[data-cat]')];
+function loadProgress(){try{return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}')}catch{return {}}}
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function doneIds(progress){return new Set(Object.keys(progress.done||{}))}
+function prefs(done){const out={};for(const id of done){const item=CATALOG.find(x=>x.id===id);if(!item)continue;(item.categories||[]).forEach(c=>out[c]=(out[c]||0)+1)}return out}
+function card(item){return `<a class="rec-card" href="${esc(item.url)}"><span>${esc(item.emoji)} ${esc(item.minutes)} min · ${(item.categories||['general']).map(esc).join(', ')}</span><strong>${esc(item.title)}</strong><em>${esc(item.subtitle||'')}</em></a>`}
+function pick(cat){
+ const progress=loadProgress(),done=doneIds(progress),pref=prefs(done),historyCount=done.size,day=new Date().toISOString().slice(0,10);
+ let pool=CATALOG.filter(item=>!done.has(item.id));
+ if(cat&&cat!=='all')pool=pool.filter(item=>(item.categories||[]).includes(cat));
+ let scored=pool.map(item=>{
+  let s=item.daily?25:0;
+  if(historyCount){for(const c of item.categories||[])s+=(pref[c]||0)*30}
+  else{s+=item.daily?100:0}
+  s+=(hash(item.id+day)%1000)/1000;
+  return {item,s};
+ }).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.item);
+ if(scored.length<3){
+  const seen=new Set(scored.map(x=>x.id));
+  CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,3-scored.length).forEach(item=>scored.push(item));
+ }
+ if(note)note.textContent=historyCount?`Three picks based on ${historyCount} completed read${historyCount===1?'':'s'}. Choose a category to steer the next set.`:'No reading history yet — using today’s issue. Choose a category to steer the first set.';
+ if(list)list.innerHTML=scored.map(card).join('');
+}
+function setCat(cat){localStorage.setItem(CAT_KEY,cat);buttons.forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));pick(cat)}
+buttons.forEach(b=>b.addEventListener('click',()=>setCat(b.dataset.cat)));
+setCat(localStorage.getItem(CAT_KEY)||'all');
+})();
+</script>"""
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
@@ -1457,15 +1559,17 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
 .feature p{{font:500 19px/1.58 Georgia,serif;color:#3f4743;margin:0 0 12px}}.readline{{font:800 13px/1 system-ui;color:#77736a}}
 .side{{border-left:1px solid #d8d3c8;padding-left:22px}}.section-head h2,.archive h2{{font:800 22px/1 Georgia,serif;margin:0 0 4px;color:#151719}}.section-head p{{margin:0 0 14px;color:#636b66;font:600 14px/1.45 system-ui}}
 .post{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:14px 0}}.post-k{{display:block;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.post strong{{display:block;font:800 22px/1.08 Georgia,serif;margin:6px 0;color:#151719}}.post span:last-child{{display:block;color:#59605c;font:500 15px/1.45 Georgia,serif}}
+.recs{{border:1px solid #d8d3c8;background:#fff;margin:0 0 26px;padding:16px}}.rec-head{{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}}.rec-head h2{{font:850 25px/1.05 Georgia,serif;margin:0;color:#151719}}.rec-head p{{margin:5px 0 0;color:#636b66;font:650 13px/1.35 system-ui}}.catbar{{display:flex;gap:7px;flex-wrap:wrap}}.catbar button{{border:1px solid #d8d3c8;background:#fff;color:#151719;padding:8px 10px;border-radius:999px;font:850 12px/1 system-ui;cursor:pointer}}.catbar button.active{{background:#151719;color:#fff;border-color:#151719}}.rec-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}}.rec-card{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:12px 0}}.rec-card span{{font:850 11px/1 system-ui;text-transform:uppercase;letter-spacing:.1em;color:#77736a}}.rec-card strong{{display:block;font:850 20px/1.1 Georgia,serif;margin:6px 0;color:#151719}}.rec-card em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal}}
 .levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:22px 0}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:#151719}}
 .graph-link{{display:block;text-decoration:none;color:#151719;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:16px 0 0}}.graph-link.engine{{border-color:#d8d3c8}}.graph-link span{{font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.graph-link.engine span{{color:#77736a}}.graph-link strong{{display:block;font:800 22px/1 Georgia,serif;margin:6px 0}}.graph-link em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal;overflow-wrap:break-word}}
 .arcade,.archive,.curriculum{{margin-top:34px;border-top:1px solid #151719;padding-top:18px}}.games{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}.game{{display:block;text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;padding:13px}}.game span{{font-size:24px}}.game strong{{display:block;font:800 17px/1.1 system-ui;margin:7px 0 4px}}.game small{{display:block;color:#5f665f;font:600 13px/1.35 system-ui}}
 .cur-tracks{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.cur-track{{background:#fff;border:1px solid #d8d3c8;padding:14px}}.cur-track-head strong{{display:block;font:800 18px/1.1 system-ui}}.cur-track-head span{{display:block;color:#5f665f;font:650 12px/1.35 system-ui;margin-top:4px}}.cur-units{{margin-top:10px}}.cur-unit{{display:block;text-decoration:none;color:#151719;font:750 15px/1.35 system-ui;padding:7px 0;border-top:1px solid #ece8df}}.cur-unit em{{font:700 11px/1 system-ui;color:#77736a;font-style:normal;margin-left:6px}}
 .archive-row{{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:12px 0}}.archive-row strong{{font:750 17px/1.2 system-ui}}.archive-row em{{font:700 12px/1 system-ui;color:#77736a;font-style:normal}}.foot{{border-top:1px solid #d8d3c8;color:#676b66;margin-top:32px;padding-top:16px;font:600 13px/1.45 system-ui}}
-@media(max-width:760px){{.wrap{{width:min(620px,calc(100% - 32px));overflow:hidden}}.topbar{{justify-content:flex-start}}.mast{{display:block}}.mast h1{{font-size:46px}}.mast p{{display:block;width:31ch;max-width:100%;white-space:normal;overflow-wrap:break-word;font-size:17px}}.issue{{text-align:left;margin-top:20px}}.bloggrid{{display:block}}.feature{{display:block;min-width:0}}.feature article{{display:block;width:100%;min-width:0}}.feature h2{{font-size:36px;max-width:13ch;overflow-wrap:break-word}}.feature p{{display:block;width:31ch;max-width:100%;white-space:normal;font-size:17px;overflow-wrap:break-word}}.feature .emoji{{font-size:72px;margin-bottom:8px}}.side{{border-left:0;padding-left:0;margin-top:22px}}.games,.cur-tracks{{grid-template-columns:1fr}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
+@media(max-width:760px){{.wrap{{width:min(620px,calc(100% - 32px));overflow:hidden}}.topbar{{justify-content:flex-start}}.mast{{display:block}}.mast h1{{font-size:46px}}.mast p{{display:block;width:31ch;max-width:100%;white-space:normal;overflow-wrap:break-word;font-size:17px}}.issue{{text-align:left;margin-top:20px}}.bloggrid{{display:block}}.feature{{display:block;min-width:0}}.feature article{{display:block;width:100%;min-width:0}}.feature h2{{font-size:36px;max-width:13ch;overflow-wrap:break-word}}.feature p{{display:block;width:31ch;max-width:100%;white-space:normal;font-size:17px;overflow-wrap:break-word}}.feature .emoji{{font-size:72px;margin-bottom:8px}}.side{{border-left:0;padding-left:0;margin-top:22px}}.rec-grid,.games,.cur-tracks{{grid-template-columns:1fr}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
 </style></head><body><div class='wrap'>
 <div class='topbar'><span>LifeOS Field Notes</span><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/m'>Control</a></div>
 <header class='mast'><div><h1>Field Notes</h1><p>Generated essays for the morning: read the idea like a blog post, then use a game to make it stick.</p></div><div class='issue'>{esc(day)}</div></header>
+<section class='recs' data-recs><div class='rec-head'><div><h2>Recommended reads</h2><p data-rec-note>Three picks tuned to what you have read. Choose a category when you want a different lane.</p></div><div class='catbar' data-catbar><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></div></div><div class='rec-grid' data-rec-list>{rec_fallback}</div></section>
 <main class='bloggrid'><section>
 <a class='feature' href='/output/learn/{esc(featured['id'])}.html' style='--c:{featured['accent']}'>
 <div class='emoji'>{esc(featured['emoji'])}</div><article><div class='feature-k'>Today's lead essay</div><h2>{esc(featured['title'])}</h2><p>{esc(featured['subtitle'])}</p><div class='readline'>{esc(featured['minutes'])} min read -></div></article></a>
@@ -1476,7 +1580,7 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
 {curriculum_html}
 {games_html}
 <div class='foot'>A fresh issue is generated every morning by LifeOS. Each article points toward practice, not passive reading.</div>
-</div><script>
+</div><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}<script>
 (function(){{
 const KEY='lifeos.learning.progress.v1';
 function load(){{try{{return JSON.parse(localStorage.getItem(KEY)||'{{}}')}}catch{{return {{}}}}}}
