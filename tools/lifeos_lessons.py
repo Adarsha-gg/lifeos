@@ -727,15 +727,15 @@ body{margin:0;font-family:Georgia,'Iowan Old Style',serif;background:var(--bg);c
 .wrap{max-width:720px;width:100%;margin:0 auto;padding:0 20px 110px;overflow:hidden}
 .topbar{position:sticky;top:0;background:rgba(11,15,13,.92);backdrop-filter:blur(8px);display:flex;justify-content:space-between;align-items:center;padding:12px 0;font:600 13px/1 system-ui;z-index:9}
 .topbar a{color:var(--muted);text-decoration:none}
-.herowrap{margin:6px 0 0;border-radius:22px;overflow:hidden;border:1px solid var(--line);position:relative;background:var(--card)}
+.herowrap{display:none}
 .herowrap img,.herowrap svg{display:block;width:100%;height:240px;object-fit:cover}
 .credit{position:absolute;right:8px;bottom:8px;font:500 11px/1.2 system-ui;color:#eaffef;background:rgba(0,0,0,.45);padding:3px 8px;border-radius:7px;max-width:70%;text-align:right}
-.kicker{font:700 12px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:22px 0 6px}
+.kicker{font:700 12px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 6px}
 h1{font-size:36px;line-height:1.12;margin:.1em 0 .15em}
 .sub{color:var(--muted);font-size:19px;margin:0}
 .meta{font:600 13px/1 system-ui;color:var(--muted);display:flex;gap:16px;margin:14px 0 20px;flex-wrap:wrap}
 .lead{font-size:20px}
-.lead::first-letter{font-size:3.3em;float:left;line-height:.78;padding:6px 10px 0 0;color:var(--accent);font-weight:700}
+.lead::first-letter{font-size:inherit;float:none;line-height:inherit;padding:0;color:inherit;font-weight:inherit}
 .sub,.lead,p,h1,.sec h3,.meta{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .sec{margin:30px 0}
 .sec h3{font-size:24px;margin:0 0 10px}
@@ -755,31 +755,31 @@ p{margin:0 0 16px;font-size:18px}
 .ideas dl{margin:0}
 .ideas dt{font-weight:700;margin-top:12px;font-size:18px}
 .ideas dd{margin:2px 0 0;color:#cfe7da;font-size:17px}
-.game{border:1px solid var(--accent);border-radius:20px;background:linear-gradient(180deg,#10271b,#0d1813);padding:20px;margin:30px 0}
-.game .tag{font:700 12px/1 system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.game{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:20px;margin:30px 0}
+.game .tag{font:700 12px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .gprompt{font-size:19px;font-weight:700;margin:8px 0 14px}
 .olist{list-style:none;margin:0;padding:0}
 .olist li{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0b130f;border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:8px 0;font:600 17px system-ui}
 .olist .ctrl{display:flex;flex:none}
 .olist .ctrl button{font:700 17px/1 system-ui;background:none;border:1px solid var(--line);color:var(--accent);border-radius:9px;width:38px;height:38px;margin-left:6px;cursor:pointer}
 .gin{width:100%;font:inherit;font-size:18px;border:1px solid var(--line);background:#0b130f;color:var(--fg);border-radius:12px;padding:13px;margin:2px 0 4px}
-.check{font:700 15px/1 system-ui;background:var(--accent);color:#04140b;border:none;border-radius:12px;padding:13px 18px;cursor:pointer;margin-top:8px}
+.check{font:700 15px/1 system-ui;background:var(--fg);color:var(--bg);border:none;border-radius:10px;padding:13px 18px;cursor:pointer;margin-top:8px}
 .gresult{margin-top:14px;font-family:system-ui;font-size:16px;line-height:1.6;color:#cfe7da;display:none}
 .gresult.show{display:block}
 .gresult .ok{color:var(--accent);font-weight:700}
 .gresult .no{color:#ff9b8a;font-weight:700}
 .reveal{border:1px dashed #2c5e44;border-radius:14px;padding:14px 18px;background:#0b130f;margin:20px 0}
-.reveal button{font:700 14px/1.3 system-ui;background:none;border:none;color:var(--accent);cursor:pointer;padding:0;text-align:left}
+.reveal button{font:700 14px/1.3 system-ui;background:none;border:none;color:var(--fg);cursor:pointer;padding:0;text-align:left}
 .reveal .txt{display:none;margin-top:10px;color:#cfe7da;font-size:17px}
 .reveal.show .txt{display:block}
 .foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-family:system-ui;color:var(--muted);font-size:15px}
 .foot a{color:var(--accent)}
-.pill{display:inline-block;font:700 12px/1 system-ui;color:#04140b;background:var(--accent);border-radius:999px;padding:6px 11px}
-.playcta{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--fg);border:1px solid var(--c,#46d17a);border-radius:18px;padding:18px;margin:24px 0 4px;background:linear-gradient(110deg,color-mix(in srgb,var(--c,#46d17a) 16%,transparent),var(--card))}
-.playcta .pc_k{font:800 12px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--c,#46d17a)}
+.pill{display:inline-block;font:700 12px/1 system-ui;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 11px}
+.playcta{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:18px;margin:24px 0 4px;background:var(--card)}
+.playcta .pc_k{font:800 12px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .playcta .pc_t{font:800 21px/1.1 system-ui;margin:6px 0 3px}
 .playcta .pc_s{font:600 14px/1.3 system-ui;color:var(--muted)}
-.playcta .pc_go{margin-left:auto;font-size:24px;color:var(--c,#46d17a)}
+.playcta .pc_go{margin-left:auto;font-size:24px;color:var(--muted)}
 /* --- playable games --- */
 .pd-scores,.monty-stats{display:flex;gap:18px;font:700 15px/1 system-ui;margin:4px 0 12px;flex-wrap:wrap}
 .pd-scores b,.monty-stats b{color:var(--accent)}
@@ -795,7 +795,7 @@ button:disabled{opacity:.5}
 .doors{display:flex;gap:10px;margin:12px 0}
 .door{flex:1;font-size:46px;line-height:1;background:#0b130f;border:2px solid var(--line);border-radius:14px;padding:16px 0;cursor:pointer;transition:.15s}
 .door:hover{border-color:var(--accent)}
-.door.picked{border-color:var(--accent);box-shadow:0 0 0 3px rgba(70,209,122,.25)}
+.door.picked{border-color:var(--fg);box-shadow:none}
 .door.open{opacity:.8}
 .monty-msg{font:600 16px/1.4 system-ui;margin:10px 0;color:#cfe7da}
 """
@@ -1049,6 +1049,101 @@ update();
 """
 
 
+HIGHLIGHT_JS = r"""
+(function(){
+const root=document.querySelector('[data-highlight-root]');
+const node=window.LIFEOS_NODE||{};
+if(!root)return;
+const key='lifeos.highlights.v1.'+(node.id||location.pathname);
+const bar=document.createElement('div');
+bar.className='hlbar';
+bar.innerHTML='<button type="button" data-hl-add>Highlight</button><button type="button" data-hl-clear>Clear</button>';
+document.body.appendChild(bar);
+let savedRange=null;
+function hide(){bar.classList.remove('show')}
+function usableSelection(){
+ const sel=window.getSelection();
+ if(!sel||sel.isCollapsed||sel.rangeCount===0)return null;
+ const range=sel.getRangeAt(0);
+ if(!root.contains(range.commonAncestorContainer))return null;
+ const text=String(sel).trim();
+ if(text.length<2)return null;
+ return range;
+}
+function place(){
+ const range=usableSelection();
+ if(!range){hide();return}
+ savedRange=range.cloneRange();
+ const rect=range.getBoundingClientRect();
+ if(!rect||(!rect.width&&!rect.height)){hide();return}
+ bar.style.left=Math.max(10,Math.min(window.innerWidth-170,rect.left+rect.width/2-70))+'px';
+ bar.style.top=Math.max(10,rect.top-46)+'px';
+ bar.classList.add('show');
+}
+function skipNode(n){
+ const p=n.parentElement;
+ return !p||p.closest('mark.user-highlight,button,a,script,style,.hlbar');
+}
+function textNodes(){
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){return skipNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}});
+ const out=[];let n;while((n=walker.nextNode()))out.push(n);return out;
+}
+function unwrap(mark){
+ const parent=mark.parentNode;
+ while(mark.firstChild)parent.insertBefore(mark.firstChild,mark);
+ parent.removeChild(mark);
+ parent.normalize();
+}
+function save(){
+ const items=[...root.querySelectorAll('mark.user-highlight')].map(m=>m.textContent.trim()).filter(Boolean).slice(0,200);
+ localStorage.setItem(key,JSON.stringify(items));
+}
+function highlightRange(range){
+ const mark=document.createElement('mark');
+ mark.className='user-highlight';
+ mark.dataset.userHighlight='1';
+ mark.appendChild(range.extractContents());
+ range.insertNode(mark);
+ mark.normalize();
+ save();
+}
+function restoreOne(text){
+ if(!text||text.length<2)return false;
+ for(const n of textNodes()){
+  const i=n.nodeValue.indexOf(text);
+  if(i<0)continue;
+  const r=document.createRange();
+  r.setStart(n,i);r.setEnd(n,i+text.length);
+  highlightRange(r);
+  return true;
+ }
+ return false;
+}
+function restore(){
+ let items=[];try{items=JSON.parse(localStorage.getItem(key)||'[]')}catch{}
+ if(Array.isArray(items))items.forEach(restoreOne);
+}
+bar.querySelector('[data-hl-add]').addEventListener('click',()=>{
+ if(!savedRange)return hide();
+ try{highlightRange(savedRange)}catch(e){}
+ window.getSelection()?.removeAllRanges();
+ hide();
+});
+bar.querySelector('[data-hl-clear]').addEventListener('click',()=>{
+ root.querySelectorAll('mark.user-highlight').forEach(unwrap);
+ localStorage.removeItem(key);
+ window.getSelection()?.removeAllRanges();
+ hide();
+});
+root.addEventListener('mouseup',()=>setTimeout(place,0));
+root.addEventListener('touchend',()=>setTimeout(place,80),{passive:true});
+document.addEventListener('selectionchange',()=>{if(!usableSelection())hide()});
+window.addEventListener('scroll',hide,{passive:true});
+restore();
+})();
+"""
+
+
 
 def _source_entries(lesson: dict[str, Any]) -> list[tuple[str, str, str]]:
     """Return unique (label, url, note) entries for the bottom source trail."""
@@ -1121,6 +1216,7 @@ def _reading_note_html(lesson: dict[str, Any]) -> str:
     return (
         "<section class='readingNote'><h3>How to read this page</h3>"
         "<p>Read it as a set of claims, not as sacred text. First get the model. Then check the source trail. "
+        "Select any sentence to highlight it; use Clear to remove saved highlights for this page. "
         "Finally, write one objection, one application, and one uncertainty you would need to verify before teaching it to someone else.</p>"
         "</section>"
     )
@@ -1180,21 +1276,25 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 <script src='https://telegram.org/js/telegram-web-app.js'></script>
 <title>{esc(lesson['title'])} — LifeOS Learn</title>
 <style>{BASE_CSS}{curriculum_css}
-.completebar{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:16px;background:var(--card);padding:14px 16px;margin:24px 0}}
+.completebar{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:14px 16px;margin:24px 0}}
 .completebar b{{display:block;font:800 17px/1.2 system-ui}}.completebar span{{display:block;color:var(--muted);font:650 13px/1.35 system-ui;margin-top:4px}}
-.completebar button{{border:0;border-radius:12px;background:var(--accent);color:#051018;font:900 14px/1 system-ui;padding:12px 14px;cursor:pointer;white-space:nowrap}}
+.completebar button{{border:0;border-radius:10px;background:var(--fg);color:var(--bg);font:900 14px/1 system-ui;padding:12px 14px;cursor:pointer;white-space:nowrap}}
 .completebar button:disabled{{opacity:.65;cursor:default}}
-.readingNote,.questionBlock,.sourceTrail{{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:18px 20px;margin:24px 0}}
+.user-highlight{{background:#ffe66d;color:#151719;border-radius:3px;padding:0 .08em;box-decoration-break:clone;-webkit-box-decoration-break:clone}}
+.hlbar{{position:fixed;z-index:99;display:none;gap:6px;background:#151719;color:#fff;border:1px solid #000;border-radius:999px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.22)}}
+.hlbar.show{{display:flex}}.hlbar button{{border:0;border-radius:999px;background:#fff;color:#151719;font:850 13px/1 system-ui;padding:9px 12px;cursor:pointer}}.hlbar [data-hl-clear]{{background:#2b2b2b;color:#fff}}
+.readingNote,.questionBlock,.sourceTrail{{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:18px 20px;margin:24px 0}}
 .readingNote h3,.questionBlock h3,.sourceTrail h3{{margin:0 0 8px;font:850 22px/1.1 system-ui;color:var(--fg)}}
 .readingNote p,.questionBlock p,.sourceTrail p{{margin:0 0 10px;color:#cfe7da;font-size:16px;line-height:1.55}}
 .questionBlock ul,.sourceTrail ul{{margin:0;padding-left:20px;color:#dceddf;font-size:16px;line-height:1.55}}
 .sourceTrail li+li,.questionBlock li+li{{margin-top:7px}}
-.sourceTrail a{{color:#9fd5ff;font-weight:850}}
+.sourceTrail a{{color:inherit;font-weight:850;text-decoration:underline;text-underline-offset:2px}}
 .sourceTrail span{{display:block;color:var(--muted);font-size:13px;margin-top:2px}}
 @media(max-width:640px){{.completebar{{align-items:flex-start;flex-direction:column}}.completebar button{{width:100%}}}}
 :root{{--accent:{accent}}}</style></head>
 <body><div class='wrap'>
 <div class='topbar'><a href='/learn'>&larr; Today's lessons</a><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/output/learn/learning-system.html'>Training queue</a><span>{esc(day)}</span></div>
+<main class='lessonBody' data-highlight-root>
 {_hero_html(lesson)}
 <div class='kicker'>{kicker}</div>
 <h1>{esc(lesson['title'])}</h1>
@@ -1211,12 +1311,13 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 {_play_cta(lesson['id'])}
 <div class='completebar'><div><b>Lock this node into your knowledge graph</b><span data-lifeos-level>Level 1 / 0 XP</span></div><button data-complete-node>Mark complete</button></div>
 {_source_trail_html(lesson)}
+</main>
 <div class='foot'>
 <p>{esc(lesson.get('next',''))}</p>
 <p>Stuck or curious? Ask your LifeOS agent to go deeper on anything here — it's your teacher.</p>
 </div>
 </div>
-<script>window.LIFEOS_NODE={json.dumps(progress_node)};</script><script>{PROGRESS_JS}</script><script>{BASE_JS}</script></body></html>"""
+<script>window.LIFEOS_NODE={json.dumps(progress_node)};</script><script>{PROGRESS_JS}</script><script>{HIGHLIGHT_JS}</script><script>{BASE_JS}</script></body></html>"""
 
 
 def _rotate_pick(pool: list[dict[str, Any]], today: date, salt: int = 0) -> dict[str, Any] | None:
@@ -1343,15 +1444,15 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
 .mast h1{{font:800 clamp(44px,8vw,86px)/.9 Georgia,serif;margin:0;color:#151719;letter-spacing:0}}.mast p{{margin:12px 0 0;color:#4e5651;font:500 18px/1.55 Georgia,serif;max-width:720px}}
 .issue{{font:800 12px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;color:#6a5b35;text-align:right}}
 .bloggrid{{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:24px;align-items:start}}
-.feature{{display:grid;grid-template-columns:120px 1fr;gap:22px;text-decoration:none;color:#151719;border-bottom:1px solid #d8d3c8;padding-bottom:24px}}.feature .emoji{{font-size:92px;line-height:1;filter:drop-shadow(0 12px 20px rgba(21,23,25,.12))}}
-.feature-k{{font:800 12px/1 system-ui;letter-spacing:.14em;text-transform:uppercase;color:#a76d16}}.feature h2{{font:800 clamp(34px,5vw,58px)/.95 Georgia,serif;margin:8px 0 12px;color:#151719;letter-spacing:0}}
-.feature p{{font:500 19px/1.58 Georgia,serif;color:#3f4743;margin:0 0 12px}}.readline{{font:800 13px/1 system-ui;color:#a76d16}}
+.feature{{display:grid;grid-template-columns:120px 1fr;gap:22px;text-decoration:none;color:#151719;border-bottom:1px solid #d8d3c8;padding-bottom:24px}}.feature .emoji{{font-size:92px;line-height:1;filter:none}}
+.feature-k{{font:800 12px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.feature h2{{font:800 clamp(34px,5vw,58px)/.95 Georgia,serif;margin:8px 0 12px;color:#151719;letter-spacing:0}}
+.feature p{{font:500 19px/1.58 Georgia,serif;color:#3f4743;margin:0 0 12px}}.readline{{font:800 13px/1 system-ui;color:#77736a}}
 .side{{border-left:1px solid #d8d3c8;padding-left:22px}}.section-head h2,.archive h2{{font:800 22px/1 Georgia,serif;margin:0 0 4px;color:#151719}}.section-head p{{margin:0 0 14px;color:#636b66;font:600 14px/1.45 system-ui}}
-.post{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:14px 0}}.post-k{{display:block;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}}.post strong{{display:block;font:800 22px/1.08 Georgia,serif;margin:6px 0;color:#151719}}.post span:last-child{{display:block;color:#59605c;font:500 15px/1.45 Georgia,serif}}
-.levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fffaf0;padding:14px;margin:22px 0}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:linear-gradient(90deg,#1f9d78,#4d7cff,#d86b8a)}}
-.graph-link{{display:block;text-decoration:none;color:#151719;border:1px solid #151719;background:#fff;padding:14px;margin:16px 0 0}}.graph-link.engine{{border-color:#1f9d78}}.graph-link span{{font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#4d7cff}}.graph-link.engine span{{color:#1f9d78}}.graph-link strong{{display:block;font:800 22px/1 Georgia,serif;margin:6px 0}}.graph-link em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal;overflow-wrap:break-word}}
-.arcade,.archive,.curriculum{{margin-top:34px;border-top:3px solid #151719;padding-top:18px}}.games{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}.game{{display:block;text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;border-left:4px solid var(--c);padding:13px}}.game span{{font-size:24px}}.game strong{{display:block;font:800 17px/1.1 system-ui;margin:7px 0 4px}}.game small{{display:block;color:#5f665f;font:600 13px/1.35 system-ui}}
-.cur-tracks{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.cur-track{{background:#fff;border:1px solid #d8d3c8;border-left:4px solid var(--c);padding:14px}}.cur-track-head strong{{display:block;font:800 18px/1.1 system-ui}}.cur-track-head span{{display:block;color:#5f665f;font:650 12px/1.35 system-ui;margin-top:4px}}.cur-units{{margin-top:10px}}.cur-unit{{display:block;text-decoration:none;color:#151719;font:750 15px/1.35 system-ui;padding:7px 0;border-top:1px solid #ece8df}}.cur-unit em{{font:700 11px/1 system-ui;color:#77736a;font-style:normal;margin-left:6px}}
+.post{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:14px 0}}.post-k{{display:block;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.post strong{{display:block;font:800 22px/1.08 Georgia,serif;margin:6px 0;color:#151719}}.post span:last-child{{display:block;color:#59605c;font:500 15px/1.45 Georgia,serif}}
+.levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:22px 0}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:#151719}}
+.graph-link{{display:block;text-decoration:none;color:#151719;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:16px 0 0}}.graph-link.engine{{border-color:#d8d3c8}}.graph-link span{{font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.graph-link.engine span{{color:#77736a}}.graph-link strong{{display:block;font:800 22px/1 Georgia,serif;margin:6px 0}}.graph-link em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal;overflow-wrap:break-word}}
+.arcade,.archive,.curriculum{{margin-top:34px;border-top:1px solid #151719;padding-top:18px}}.games{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}.game{{display:block;text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;padding:13px}}.game span{{font-size:24px}}.game strong{{display:block;font:800 17px/1.1 system-ui;margin:7px 0 4px}}.game small{{display:block;color:#5f665f;font:600 13px/1.35 system-ui}}
+.cur-tracks{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.cur-track{{background:#fff;border:1px solid #d8d3c8;padding:14px}}.cur-track-head strong{{display:block;font:800 18px/1.1 system-ui}}.cur-track-head span{{display:block;color:#5f665f;font:650 12px/1.35 system-ui;margin-top:4px}}.cur-units{{margin-top:10px}}.cur-unit{{display:block;text-decoration:none;color:#151719;font:750 15px/1.35 system-ui;padding:7px 0;border-top:1px solid #ece8df}}.cur-unit em{{font:700 11px/1 system-ui;color:#77736a;font-style:normal;margin-left:6px}}
 .archive-row{{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:12px 0}}.archive-row strong{{font:750 17px/1.2 system-ui}}.archive-row em{{font:700 12px/1 system-ui;color:#77736a;font-style:normal}}.foot{{border-top:1px solid #d8d3c8;color:#676b66;margin-top:32px;padding-top:16px;font:600 13px/1.45 system-ui}}
 @media(max-width:760px){{.wrap{{width:min(620px,calc(100% - 32px));overflow:hidden}}.topbar{{justify-content:flex-start}}.mast{{display:block}}.mast h1{{font-size:46px}}.mast p{{display:block;width:31ch;max-width:100%;white-space:normal;overflow-wrap:break-word;font-size:17px}}.issue{{text-align:left;margin-top:20px}}.bloggrid{{display:block}}.feature{{display:block;min-width:0}}.feature article{{display:block;width:100%;min-width:0}}.feature h2{{font-size:36px;max-width:13ch;overflow-wrap:break-word}}.feature p{{display:block;width:31ch;max-width:100%;white-space:normal;font-size:17px;overflow-wrap:break-word}}.feature .emoji{{font-size:72px;margin-bottom:8px}}.side{{border-left:0;padding-left:0;margin-top:22px}}.games,.cur-tracks{{grid-template-columns:1fr}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
 </style></head><body><div class='wrap'>
