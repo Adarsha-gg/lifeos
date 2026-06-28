@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import html
+import hashlib
+import hmac
+import ipaddress
 import json
 import os
 import socket
@@ -28,6 +31,7 @@ RESEARCH_INBOX = ROOT / "raw" / "research" / "inbox.md"
 OUT = ROOT / "output"
 DASHBOARD = OUT / "lifeos-dashboard.html"
 REFRESH_STATUS = OUT / "lifeos-refresh.json"
+LEARN_PROGRESS = OUT / "learn" / "progress.json"
 HOST = os.environ.get("LIFEOS_HOST", "127.0.0.1")
 PORT = 8787
 
@@ -161,6 +165,87 @@ def state_payload() -> dict[str, Any]:
     }
 
 
+def load_learning_progress() -> dict[str, Any]:
+    try:
+        data = json.loads(LEARN_PROGRESS.read_text(encoding="utf-8"))
+    except Exception:
+        data = {}
+    data.setdefault("done", {})
+    data.setdefault("reviews", {})
+    return data
+
+
+def save_learning_progress(data: dict[str, Any]) -> None:
+    LEARN_PROGRESS.parent.mkdir(parents=True, exist_ok=True)
+    data["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    LEARN_PROGRESS.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def telegram_init_data(init_data: str) -> tuple[bool, dict[str, Any] | None, str]:
+    token = os.environ.get("LIFEOS_TG_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN") or ""
+    if not token:
+        return False, None, "missing LIFEOS_TG_BOT_TOKEN"
+    parsed = parse_qs(init_data, keep_blank_values=True)
+    supplied = (parsed.get("hash") or [""])[0]
+    if not supplied:
+        return False, None, "missing hash"
+    pairs = []
+    for key in sorted(k for k in parsed if k != "hash"):
+        pairs.append(f"{key}={parsed[key][0]}")
+    check_string = "\n".join(pairs)
+    secret = hmac.new(b"WebAppData", token.encode("utf-8"), hashlib.sha256).digest()
+    expected = hmac.new(secret, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, supplied):
+        return False, None, "invalid initData hash"
+    user = None
+    try:
+        user_raw = (parsed.get("user") or [""])[0]
+        user = json.loads(user_raw) if user_raw else None
+    except Exception:
+        user = None
+    allowed = os.environ.get("LIFEOS_TG_CHAT_ID") or os.environ.get("TELEGRAM_CHAT_ID") or ""
+    if allowed and user and str(user.get("id")) != str(allowed).strip():
+        return False, user, "telegram user not allowed"
+    return True, user, ""
+
+
+def node_xp(node_id: str) -> int:
+    candidates = [OUT / "learn" / "graph-store.json", OUT / "learn" / "knowledge-graph.json"]
+    for path in candidates:
+        try:
+            graph = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for node in graph.get("nodes", []):
+            if node.get("id") == node_id:
+                try:
+                    return int(node.get("xp") or 80)
+                except Exception:
+                    return 80
+    return 80
+
+
+def record_learning_progress(payload: dict[str, Any], user: dict[str, Any] | None) -> dict[str, Any]:
+    node_id = str(payload.get("node_id") or payload.get("lesson_id") or "").strip()
+    if not node_id:
+        return {"ok": False, "error": "missing node_id"}
+    xp_value = node_xp(node_id)
+    progress = load_learning_progress()
+    progress.setdefault("done", {})[node_id] = {
+        "at": datetime.now().isoformat(timespec="seconds"),
+        "xp": xp_value,
+        "score": payload.get("score"),
+        "result": payload.get("result") or "complete",
+        "lesson_id": payload.get("lesson_id") or node_id,
+        "source": "telegram-mini-app",
+        "telegram_user": user or {},
+    }
+    save_learning_progress(progress)
+    total = sum(int(item.get("xp") or 0) for item in progress.get("done", {}).values() if isinstance(item, dict))
+    level = int((total / 110) ** 0.5) + 1
+    return {"ok": True, "node_id": node_id, "xp": xp_value, "total_xp": total, "level": level}
+
+
 MOBILE_HTML = """<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
@@ -267,14 +352,55 @@ class Handler(BaseHTTPRequestHandler):
         "/api/todo/add",
         "/api/actions/approve",
         "/api/actions/reject",
+        "/api/progress",
     }
 
     def is_loopback_client(self) -> bool:
         host = self.client_address[0] if self.client_address else ""
         return host in {"127.0.0.1", "::1", "localhost"} or host.startswith("127.")
 
+    @staticmethod
+    def _header_hostname(raw: str) -> str:
+        host = raw.split(",", 1)[0].strip().lower()
+        if host.startswith("[") and "]" in host:
+            return host[1:].split("]", 1)[0]
+        return host.rsplit(":", 1)[0] if ":" in host else host
+
+    @staticmethod
+    def _host_is_local(host: str) -> bool:
+        if not host:
+            return True
+        if host in {"localhost", "127.0.0.1", "::1", "0.0.0.0"}:
+            return True
+        try:
+            ip = ipaddress.ip_address(host)
+            return ip.is_loopback or ip.is_private or ip.is_link_local
+        except ValueError:
+            return "." not in host or host.endswith(".local")
+
+    def is_public_request(self) -> bool:
+        public_url = os.environ.get("LIFEOS_PUBLIC_URL", "").strip()
+        public_host = self._header_hostname(urlparse(public_url).netloc) if public_url else ""
+        forwarded_host = self._header_hostname(self.headers.get("X-Forwarded-Host", ""))
+        host = self._header_hostname(self.headers.get("Host", ""))
+        if self.headers.get("CF-Connecting-IP"):
+            return True
+        if public_host and (host == public_host or forwarded_host == public_host):
+            return True
+        if forwarded_host and not self._host_is_local(forwarded_host):
+            return True
+        return self.is_loopback_client() and bool(host) and not self._host_is_local(host)
+
+    @staticmethod
+    def public_get_allowed(path: str) -> bool:
+        return path in {"/learn", "/learn/"} or (
+            path.startswith("/output/learn/") and path.endswith(".html")
+        )
+
     def mutation_allowed(self, data: dict[str, list[str]]) -> bool:
-        if HOST in {"127.0.0.1", "localhost", "::1"} or self.is_loopback_client():
+        if self.is_public_request():
+            return False
+        if self.is_loopback_client():
             return True
         token = os.environ.get("LIFEOS_WRITE_TOKEN", "")
         if not token:
@@ -283,7 +409,16 @@ class Handler(BaseHTTPRequestHandler):
         return supplied == token
 
     def reject_mutation(self) -> None:
-        body = b"Mutation blocked. LAN writes require LIFEOS_WRITE_TOKEN."
+        body = b"Mutation blocked. LAN/public writes require LIFEOS_WRITE_TOKEN or Telegram initData."
+        self.send_response(403)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_cors()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def reject_public_route(self) -> None:
+        body = b"Public LifeOS tunnel only serves /learn, /output/learn/*.html, and authenticated /api/progress."
         self.send_response(403)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -318,6 +453,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if self.is_public_request() and not self.public_get_allowed(parsed.path):
+            self.reject_public_route()
+            return
         if parsed.path == "/health":
             checks = {
                 "server": True,
@@ -421,8 +559,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         length = int(self.headers.get("Content-Length", "0"))
-        data = parse_qs(self.rfile.read(length).decode("utf-8"))
+        raw_body = self.rfile.read(length).decode("utf-8")
         parsed = urlparse(self.path)
+        if parsed.path == "/api/progress":
+            try:
+                payload = json.loads(raw_body or "{}")
+            except Exception:
+                self.send_json({"ok": False, "error": "invalid json"}, 400)
+                return
+            ok, user, error = telegram_init_data(str(payload.get("initData") or ""))
+            if not ok:
+                self.send_json({"ok": False, "error": error}, 401)
+                return
+            result = record_learning_progress(payload, user)
+            self.send_json(result, 200 if result.get("ok") else 400)
+            return
+        data = parse_qs(raw_body)
         if parsed.path in self.MUTATION_PATHS and not self.mutation_allowed(data):
             self.reject_mutation()
             return
