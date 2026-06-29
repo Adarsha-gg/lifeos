@@ -137,3 +137,7 @@ Add browser-side helpers:
 - `renderQuestPath(recommendations)` renders a compact ordered path using top due review, ready-next, and stretch recommendations.
 
 Keep this deterministic and local-only. Do not add a backend for this phase.
+
+## Expansion: Fable-like card art implementation
+
+Use CSS-only deterministic art in `tools/lifeos_lessons.py` for `/learn` cards. Keep markup small and avoid external image dependencies. Category classes (`art-startup`, `art-science`, etc.) supply color/mood variables and object tweaks. Validate the generated page still parses and visually smoke-test with Playwright.

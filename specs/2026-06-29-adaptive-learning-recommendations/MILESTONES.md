@@ -19,3 +19,6 @@ Implemented v1 adaptive recommendation logic across graph, training queue, and l
 
 ### 2026-06-29 00:56:32
 User expanded the adaptive system: every level-up should feel game-like, with named ranks and a clear hierarchy/path of what comes first, next, and later. Updating spec and implementing this as a separate PR.
+
+### 2026-06-29 01:08:35
+User asked for the Tinder deck picture area to become much more Fable-like/storybook while keeping the clean bottom controls. Implementing deterministic CSS art as a separate PR.
