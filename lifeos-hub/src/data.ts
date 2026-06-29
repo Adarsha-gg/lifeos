@@ -19,7 +19,14 @@ function readJSON<T>(key: string, fallback: T): T {
   }
 }
 
-const LEVEL_THRESHOLDS = [0, 240, 720, 1440] as const;
+export const LEVEL_SYSTEM = [
+  { level: 1, title: "Scout", threshold: 0, unlock: "Start the graph and learn foundations." },
+  { level: 2, title: "Apprentice", threshold: 240, unlock: "Ready-next quests and first domain paths." },
+  { level: 3, title: "Pathfinder", threshold: 720, unlock: "Stretch quests, games, and cross-domain links." },
+  { level: 4, title: "Master", threshold: 1440, unlock: "Capstones, synthesis, and mentor-ready dossiers." },
+] as const;
+
+const LEVEL_THRESHOLDS = LEVEL_SYSTEM.map((l) => l.threshold) as unknown as readonly [0, 240, 720, 1440];
 const RANKS = [
   "Level 1 · Scout",
   "Level 2 · Apprentice",

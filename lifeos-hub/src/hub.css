@@ -125,6 +125,47 @@ body { background: var(--lo-paper); }
 .hub__deck-stack { width: 100%; max-width: 360px; }
 .hub__hint { color: var(--lo-muted); font-size: 13px; text-align: center; }
 
+.hub__level-ladder {
+  display: grid;
+  gap: 10px;
+  background: var(--lo-card);
+  border: 1px solid var(--lo-line);
+  box-shadow: var(--lo-shadow-md), var(--lo-shadow-inset);
+  padding: var(--lo-sp-4);
+}
+.hub__level-step {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--lo-line);
+  background: var(--lo-card-2);
+  opacity: .62;
+}
+.hub__level-step.done { opacity: 1; background: var(--lo-green-wash); }
+.hub__level-step.current { opacity: 1; border-color: var(--lo-gold); background: var(--lo-gold-wash); box-shadow: inset 4px 0 0 var(--lo-gold); }
+.hub__level-badge {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  background: var(--lo-paper);
+  border: 1px solid var(--lo-line-strong);
+  color: var(--lo-ink);
+  font: 900 14px/1 var(--lo-font-ui);
+}
+.hub__level-step.current .hub__level-badge { background: var(--lo-gold); color: #2e2620; }
+.hub__level-step b { display: block; font: 800 16px/1.15 var(--lo-font-ui); color: var(--lo-ink); }
+.hub__level-step small { display: block; margin-top: 3px; color: var(--lo-ink-soft); font: 700 12px/1.35 var(--lo-font-ui); }
+.hub__progress-note {
+  border: 1px dashed var(--lo-line-strong);
+  background: rgba(251,245,230,.7);
+  padding: 10px 12px;
+  color: var(--lo-ink-soft);
+  font: 700 13px/1.45 var(--lo-font-ui);
+}
+
 @media (min-width: 680px) {
   .hub__games { grid-template-columns: 1fr; }
 }
