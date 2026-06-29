@@ -1,0 +1,130 @@
+/* Quest Hub layout — single scrolling page + hamburger side drawer.
+   Relies on the design-system tokens (loaded via lifeos-ds). */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--lo-paper); }
+
+.hub {
+  min-height: 100vh;
+  background: var(--lo-paper);
+  background-image: var(--lo-texture);
+  color: var(--lo-ink);
+  font-family: var(--lo-font-ui);
+}
+
+/* --- top bar --- */
+.hub__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--lo-sp-3);
+  padding: 12px 16px;
+  background: rgba(245, 236, 216, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--lo-line);
+}
+.hub__burger {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 42px;
+  height: 42px;
+  padding: 0 9px;
+  background: var(--lo-card);
+  border: 1px solid var(--lo-line-strong);
+  cursor: pointer;
+}
+.hub__burger span { display: block; height: 2px; background: var(--lo-ink); }
+.hub__wordmark { font-family: var(--lo-font-display); font-weight: 600; font-size: 20px; }
+.hub__wordmark b { color: var(--lo-accent); }
+.hub__topspacer { flex: 1; }
+
+/* --- drawer --- */
+.hub__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(46, 38, 32, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.hub__scrim.open { opacity: 1; pointer-events: auto; }
+
+.hub__drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  width: 280px;
+  max-width: 84vw;
+  height: 100%;
+  background: var(--lo-card);
+  border-right: 2px solid var(--lo-line-strong);
+  box-shadow: var(--lo-shadow-lg);
+  transform: translateX(-100%);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 14px;
+  overflow-y: auto;
+}
+.hub__drawer.open { transform: translateX(0); }
+.hub__drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 6px;
+}
+.hub__drawer-title { font-family: var(--lo-font-display); font-weight: 600; font-size: 18px; }
+.hub__drawer-close {
+  border: 1px solid var(--lo-line-strong);
+  background: var(--lo-card-2);
+  width: 32px; height: 32px;
+  font-size: 17px; cursor: pointer; color: var(--lo-ink);
+}
+.hub__navlink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 12px;
+  margin: 2px 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  font: 700 15px/1.1 var(--lo-font-ui);
+  color: var(--lo-ink);
+}
+.hub__navlink:hover { background: var(--lo-card-2); border-left-color: var(--lo-gold); }
+.hub__navlink .ic { font-size: 18px; width: 22px; text-align: center; }
+
+/* --- main scroll --- */
+.hub__main {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 18px 16px 96px;
+  display: grid;
+  gap: 26px;
+}
+.hub__section { scroll-margin-top: 72px; display: grid; gap: 12px; }
+.hub__section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hub__section-title { font-family: var(--lo-font-display); font-weight: 600; font-size: 22px; margin: 0; }
+.hub__section-link {
+  background: none; border: none; cursor: pointer;
+  color: var(--lo-accent); font: 700 13px var(--lo-font-ui);
+}
+.hub__row { display: grid; gap: 12px; }
+.hub__deck-wrap { display: grid; gap: 16px; justify-items: center; }
+.hub__deck-stack { width: 100%; max-width: 360px; }
+.hub__hint { color: var(--lo-muted); font-size: 13px; text-align: center; }
+
+@media (min-width: 680px) {
+  .hub__games { grid-template-columns: 1fr; }
+}

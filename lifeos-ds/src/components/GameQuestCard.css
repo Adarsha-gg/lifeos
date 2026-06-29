@@ -1,0 +1,62 @@
+.lo-game {
+  display: flex;
+  gap: var(--lo-sp-4);
+  font-family: var(--lo-font-ui);
+  background: var(--lo-card);
+  border: 1px solid var(--lo-line);
+  border-radius: var(--lo-r-lg);
+  padding: var(--lo-sp-4);
+  box-shadow: var(--lo-shadow-sm), var(--lo-shadow-inset);
+}
+.lo-game--locked { opacity: 0.82; }
+
+.lo-game__tile {
+  flex: none;
+  width: 84px;
+  align-self: stretch;
+  min-height: 84px;
+  display: grid;
+  place-content: center;
+  border-radius: var(--lo-r-md);
+  background:
+    radial-gradient(circle at 30% 25%, var(--lo-gold-wash), transparent 70%),
+    linear-gradient(150deg, var(--lo-green-wash), var(--lo-card-2));
+  border: 1px solid var(--lo-line);
+}
+.lo-game__glyph { font-size: 38px; line-height: 1; }
+
+.lo-game__body { flex: 1; min-width: 0; }
+.lo-game__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.lo-game__title {
+  margin: 0 0 4px;
+  font-size: 19px;
+  line-height: 1.15;
+}
+.lo-game__desc {
+  margin: 0 0 var(--lo-sp-4);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--lo-ink-soft);
+}
+.lo-game__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lo-sp-3);
+  flex-wrap: wrap;
+}
+.lo-game__stats {
+  display: flex;
+  gap: var(--lo-sp-3);
+  align-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--lo-muted);
+}
+.lo-game__stat b { color: var(--lo-ink-soft); }
+.lo-game__stat--xp { color: var(--lo-gold); }

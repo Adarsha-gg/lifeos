@@ -1,0 +1,45 @@
+.lo-deckctl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lo-sp-5);
+  font-family: var(--lo-font-ui);
+}
+
+.lo-deckctl__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--lo-r-pill);
+  border: 1.5px solid var(--lo-line-strong);
+  background: var(--lo-card);
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 13px 26px;
+  color: var(--lo-ink);
+  box-shadow: var(--lo-shadow-md);
+  transition: transform 0.08s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.lo-deckctl__btn:active { transform: translateY(2px); }
+.lo-deckctl__btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.lo-deckctl__glyph {
+  display: grid;
+  place-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.lo-deckctl__no { color: var(--lo-rose); }
+.lo-deckctl__no:hover { border-color: var(--lo-rose); background: var(--lo-rose-wash); }
+
+.lo-deckctl__read {
+  color: var(--lo-ink);
+  background: #f2e6bf;
+  border-color: var(--lo-gold);
+  box-shadow: var(--lo-shadow-md);
+}
+.lo-deckctl__read:hover { background: #ecdca8; }
