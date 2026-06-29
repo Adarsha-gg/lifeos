@@ -193,7 +193,7 @@ export function Hub() {
         {/* 9 — mentor desk (teachers) */}
         <section id="mentor" className="hub__section">
           <TeacherPanel
-            learner={isTeacher ? { name: "Mira", level: 7, rankTitle: "Journeyman of Systems", xp: 240, xpToNext: 600, mastered: 18, total: 42, weakDomain: "Probability" } : undefined}
+            learner={isTeacher ? { name: "Mira", level: 3, rankTitle: "Level 3 · Pathfinder", xp: 240, xpToNext: 720, mastered: 18, total: 42, weakDomain: "Probability" } : undefined}
             onImportLearner={() => alert("Import a learner bundle / paste their sync code.")}
             onRecommend={() => go("path", () => {})}
           />

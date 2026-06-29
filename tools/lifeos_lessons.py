@@ -1018,7 +1018,7 @@ if(tg){try{tg.ready();tg.expand();tg.MainButton.setText('Lock into graph');tg.Ma
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
 function save(p){localStorage.setItem(KEY,JSON.stringify(p))}
 function xp(p){return Object.values(p.done||{}).reduce((s,n)=>s+(+n.xp||0),0)}
-function level(x){return Math.floor(Math.sqrt(x/110))+1}
+function level(x){return x>=1440?4:(x>=720?3:(x>=240?2:1))}
 function award(id,title,kind,xpValue){
  const p=load();p.done=p.done||{};
  if(!p.done[id])p.done[id]={at:new Date().toISOString(),title,xp:xpValue,kind};
@@ -1604,13 +1604,13 @@ def _lesson_level(lesson: dict[str, Any]) -> int:
     raw = str((lesson.get("curriculum") or {}).get("difficulty") or lesson.get("difficulty") or lesson.get("difficulty_level") or "").lower()
     if any(word in raw for word in ["intro", "beginner", "foundation", "basic"]):
         return 1
-    if any(word in raw for word in ["intermediate", "medium", "core"]):
-        return 3
-    if any(word in raw for word in ["advanced", "hard", "expert"]):
-        return 5
+    if any(word in raw for word in ["intermediate", "medium", "core", "formation", "method"]):
+        return 2
+    if any(word in raw for word in ["advanced", "hard", "expert", "capstone", "synthesis"]):
+        return 4
     minutes = int(lesson.get("minutes") or 10)
     sections = len(lesson.get("sections") or [])
-    return max(1, min(8, round(1 + max(0, minutes - 12) / 18 + min(2, sections / 5))))
+    return max(1, min(4, round(1 + max(0, minutes - 12) / 22 + min(1.4, sections / 7))))
 
 
 def _lesson_card_description(lesson: dict[str, Any]) -> str:
@@ -1740,7 +1740,7 @@ function attr(s){return esc(s).replace(/"/g,'&quot;')}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function doneIds(){const progress=load(PROGRESS_KEY,{});return new Set(Object.keys(progress.done||{}))}
 function prefs(done){const out={};for(const id of done){const item=CATALOG.find(x=>x.id===id);if(!item)continue;(item.categories||[]).forEach(c=>out[c]=(out[c]||0)+1)}return out}
-function learnerLevel(done){let xp=0;for(const id of done){const item=CATALOG.find(x=>x.id===id);xp+=item?(item.minutes||10)*6:80}return Math.floor(Math.sqrt(xp/110))+1}
+function learnerLevel(done){let xp=0;for(const id of done){const item=CATALOG.find(x=>x.id===id);xp+=item?(item.minutes||10)*6:80}return xp>=1440?4:(xp>=720?3:(xp>=240?2:1))}
 function ranked(cat){
  const done=doneIds(),pref=prefs(done),lvl=learnerLevel(done),skipped=load(SKIP_KEY,{}),day=new Date().toISOString().slice(0,10);
  let pool=CATALOG.filter(item=>!done.has(item.id)&&!skipped[item.id]);
