@@ -1,0 +1,83 @@
+.lo-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lo-sp-4);
+  font-family: var(--lo-font-ui);
+}
+
+.lo-rank__crest {
+  position: relative;
+  display: grid;
+  place-content: center;
+  border-radius: 0;
+  color: #3a2c08;
+  text-align: center;
+  flex: none;
+  box-shadow: var(--lo-shadow-md), inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    inset 0 -4px 8px rgba(122, 92, 20, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+}
+.lo-rank__crest--gold {
+  background: radial-gradient(circle at 35% 28%, #f6e3a0, var(--lo-gold) 70%, #a87f25);
+}
+.lo-rank__crest--silver {
+  background: radial-gradient(circle at 35% 28%, #f4f1ea, #c9c4ba 70%, #97917f);
+  color: #34302a;
+}
+.lo-rank__crest--bronze {
+  background: radial-gradient(circle at 35% 28%, #e9b988, #c2823f 70%, #8a5722);
+  color: #3a230e;
+}
+
+/* gilded sunburst ring */
+.lo-rank__ray {
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.22) 0deg 6deg,
+    transparent 6deg 12deg
+  );
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+.lo-rank__lvl-k {
+  position: relative;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  opacity: 0.75;
+}
+.lo-rank__lvl {
+  position: relative;
+  font-family: var(--lo-font-display);
+  font-weight: 700;
+  line-height: 0.9;
+}
+
+/* sizes */
+.lo-rank--sm .lo-rank__crest { width: 48px; height: 48px; }
+.lo-rank--sm .lo-rank__lvl-k { font-size: 7px; }
+.lo-rank--sm .lo-rank__lvl { font-size: 22px; }
+
+.lo-rank--md .lo-rank__crest { width: 72px; height: 72px; }
+.lo-rank--md .lo-rank__lvl-k { font-size: 9px; }
+.lo-rank--md .lo-rank__lvl { font-size: 32px; }
+
+.lo-rank--lg .lo-rank__crest { width: 104px; height: 104px; }
+.lo-rank--lg .lo-rank__lvl-k { font-size: 11px; }
+.lo-rank--lg .lo-rank__lvl { font-size: 48px; }
+
+.lo-rank__title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.lo-rank__tier {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lo-muted);
+  margin-top: 3px;
+}

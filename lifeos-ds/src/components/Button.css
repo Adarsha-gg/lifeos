@@ -1,0 +1,60 @@
+.lo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--lo-font-ui);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  border-radius: var(--lo-r-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s ease;
+  text-decoration: none;
+}
+.lo-btn:active { transform: translateY(1px); }
+.lo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.lo-btn__icon { font-size: 1.05em; line-height: 1; }
+
+/* sizes */
+.lo-btn--sm { font-size: 13px; padding: 8px 13px; }
+.lo-btn--md { font-size: 15px; padding: 11px 18px; }
+.lo-btn--lg { font-size: 17px; padding: 14px 24px; }
+.lo-btn--block { display: flex; width: 100%; }
+
+/* All buttons are whiteish/yellowish blocks with ink text + a square border. */
+
+/* primary — warm whiteish-yellow */
+.lo-btn--primary {
+  background: #fdf8e9;
+  color: var(--lo-ink);
+  border-color: var(--lo-line-strong);
+  box-shadow: var(--lo-shadow-sm);
+}
+.lo-btn--primary:hover { background: #f7eed3; border-color: var(--lo-gold); }
+
+/* quest — slightly stronger butter yellow */
+.lo-btn--quest {
+  background: #f2e6bf;
+  color: var(--lo-ink);
+  border-color: var(--lo-gold);
+  box-shadow: var(--lo-shadow-sm);
+}
+.lo-btn--quest:hover { background: #ecdca8; }
+
+/* ghost — near-white */
+.lo-btn--ghost {
+  background: #fffefa;
+  color: var(--lo-ink);
+  border-color: var(--lo-line-strong);
+}
+.lo-btn--ghost:hover { background: #faf3df; border-color: var(--lo-gold); }
+
+/* link — text only */
+.lo-btn--link {
+  background: transparent;
+  color: var(--lo-ink);
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.lo-btn--link:hover { color: var(--lo-accent); text-decoration: underline; }

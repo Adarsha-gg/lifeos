@@ -1,0 +1,76 @@
+/* LifeOS Quest Hub — Warm Parchment design tokens
+   Fable / storybook / learning-RPG warmth. Light, papery, hand-bound. */
+:root {
+  /* --- surfaces (warm cream parchment) --- */
+  --lo-paper: #f5ecd8;        /* page background */
+  --lo-paper-2: #efe3c8;      /* recessed / inset paper */
+  --lo-card: #fbf5e6;         /* raised card surface */
+  --lo-card-2: #f7eed8;       /* secondary card surface */
+
+  /* --- ink (warm brown-black text) --- */
+  --lo-ink: #2e2620;          /* primary text */
+  --lo-ink-soft: #5a4d3e;     /* secondary text */
+  --lo-muted: #8a7a63;        /* tertiary / captions */
+
+  /* --- lines & edges --- */
+  --lo-line: #d8c6a0;         /* hairline borders */
+  --lo-line-strong: #c2ab7d;  /* emphasized borders */
+
+  /* --- brand accents --- */
+  --lo-accent: #c4602e;       /* terracotta — primary action */
+  --lo-accent-soft: #e08a52;  /* terracotta hover/glow */
+  --lo-accent-wash: #f3dcc5;  /* terracotta tint backgrounds */
+  --lo-gold: #c79a3b;         /* gold — XP, ranks, rewards */
+  --lo-gold-soft: #e3c468;    /* gold highlight */
+  --lo-gold-wash: #f3e6c2;    /* gold tint backgrounds */
+
+  /* --- semantic --- */
+  --lo-green: #5b8a4e;        /* success / mastered */
+  --lo-green-wash: #dce8cf;
+  --lo-blue: #4a6c8c;         /* info / review */
+  --lo-blue-wash: #d6e1ea;
+  --lo-rose: #b1495a;         /* alert / overdue */
+  --lo-rose-wash: #f0d4d6;
+
+  /* --- typography --- */
+  --lo-font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --lo-font-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --lo-font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --lo-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* --- radii: blocky structure, but soft/progress elements stay rounded --- */
+  --lo-r-sm: 0;
+  --lo-r-md: 0;
+  --lo-r-lg: 0;
+  --lo-r-xl: 0;
+  --lo-r-pill: 0;
+  --lo-r-round: 999px; /* opt-in rounding: XP bars, pills, progress tracks */
+
+  /* --- spacing scale --- */
+  --lo-sp-1: 4px;
+  --lo-sp-2: 8px;
+  --lo-sp-3: 12px;
+  --lo-sp-4: 16px;
+  --lo-sp-5: 24px;
+  --lo-sp-6: 32px;
+  --lo-sp-7: 48px;
+
+  /* --- shadows (soft, warm) --- */
+  --lo-shadow-sm: 0 1px 2px rgba(74, 56, 30, 0.12);
+  --lo-shadow-md: 0 6px 18px rgba(74, 56, 30, 0.14);
+  --lo-shadow-lg: 0 18px 40px rgba(74, 56, 30, 0.18);
+  --lo-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+  /* --- paper texture (subtle fibers via layered gradients) --- */
+  --lo-texture: radial-gradient(
+      circle at 18% 22%,
+      rgba(199, 154, 59, 0.05) 0,
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 82% 78%,
+      rgba(196, 96, 46, 0.045) 0,
+      transparent 42%
+    );
+}

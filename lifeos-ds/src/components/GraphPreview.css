@@ -1,0 +1,74 @@
+.lo-graph {
+  font-family: var(--lo-font-ui);
+  background: var(--lo-card);
+  border: 1px solid var(--lo-line);
+  border-radius: var(--lo-r-lg);
+  padding: var(--lo-sp-5);
+  box-shadow: var(--lo-shadow-md), var(--lo-shadow-inset);
+}
+
+.lo-graph__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--lo-sp-4);
+  margin-bottom: var(--lo-sp-4);
+}
+.lo-graph__title { margin: 4px 0 0; font-size: 20px; }
+
+.lo-graph__canvas {
+  position: relative;
+  height: 160px;
+  border-radius: var(--lo-r-md);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(199, 154, 59, 0.1), transparent 60%),
+    var(--lo-paper-2);
+  border: 1px solid var(--lo-line);
+  overflow: hidden;
+}
+.lo-graph__svg { width: 100%; height: 100%; display: block; }
+.lo-graph__edge {
+  stroke: var(--lo-line-strong);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+.lo-graph__node {
+  stroke: var(--lo-card);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+.lo-graph__nodelabel {
+  position: absolute;
+  transform: translate(8px, -50%);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--lo-ink-soft);
+  background: rgba(251, 245, 230, 0.82);
+  padding: 1px 6px;
+  border-radius: var(--lo-r-pill);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.lo-graph__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lo-sp-4);
+  margin-top: var(--lo-sp-4);
+  flex-wrap: wrap;
+}
+.lo-graph__legend {
+  display: flex;
+  gap: var(--lo-sp-4);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--lo-muted);
+}
+.lo-graph__legend span { display: inline-flex; align-items: center; gap: 5px; }
+.lo-graph__legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}

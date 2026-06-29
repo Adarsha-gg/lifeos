@@ -1,0 +1,16 @@
+{
+  "projectId": "6ecffb18-bd7f-498b-831f-883df07d4bea",
+  "pkg": "lifeos-ds",
+  "globalName": "LifeOS",
+  "shape": "package",
+  "buildCmd": "npm run build",
+  "cssEntry": "dist/lifeos-ds.css",
+  "extraFonts": ["fonts/fraunces-local.css"],
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "MemoryPanel": { "cardMode": "column" },
+    "ProfileRankHeader": { "cardMode": "column" },
+    "MainQuestCard": { "cardMode": "column" },
+    "TeacherPanel": { "cardMode": "column" }
+  }
+}

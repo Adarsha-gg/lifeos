@@ -12,3 +12,14 @@ data/
 .DS_Store
 .vercel
 .env*
+
+# design-sync
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+lifeos-ds/node_modules/
+lifeos-ds/dist/
+lifeos-hub/node_modules/
+lifeos-hub/dist/

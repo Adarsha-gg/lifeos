@@ -6,7 +6,7 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/learn",
+      "destination": "/hub",
       "permanent": false
     }
   ],

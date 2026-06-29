@@ -1,0 +1,125 @@
+.lo-deck {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: var(--lo-card);
+  border: 1px solid var(--lo-line-strong);
+  border-radius: var(--lo-r-xl);
+  overflow: hidden;
+  box-shadow: var(--lo-shadow-lg);
+  font-family: var(--lo-font-ui);
+}
+.lo-deck--depth-1 { transform: scale(0.96) translateY(8px); opacity: 0.9; }
+.lo-deck--depth-2 { transform: scale(0.92) translateY(16px); opacity: 0.78; }
+
+/* --- storybook CSS art header --- */
+.lo-deck__art {
+  position: relative;
+  height: 168px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #e8d4a8, #d8b87a);
+}
+.lo-deck__art-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 120%, rgba(255, 244, 214, 0.7), transparent 60%);
+}
+
+/* scroll / manuscript scene */
+.lo-deck__art--scroll {
+  background:
+    repeating-linear-gradient(transparent 0 16px, rgba(122, 92, 20, 0.07) 16px 17px),
+    linear-gradient(160deg, #efdcae, #dcbd84);
+}
+.lo-deck__art--scroll::before {
+  content: "✒";
+  position: absolute;
+  right: 18px;
+  bottom: 8px;
+  font-size: 64px;
+  color: rgba(122, 92, 20, 0.35);
+  transform: rotate(-12deg);
+}
+
+/* compass / map scene */
+.lo-deck__art--compass {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 38%, rgba(196, 96, 46, 0.18) 39% 40%, transparent 41%),
+    radial-gradient(circle at 50% 50%, transparent 24%, rgba(122, 92, 20, 0.2) 25% 26%, transparent 27%),
+    linear-gradient(160deg, #e6cfa0, #cdac74);
+}
+.lo-deck__art--compass::before {
+  content: "✦";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  font-size: 40px;
+  color: rgba(196, 96, 46, 0.7);
+}
+
+/* constellation / night-sky scene */
+.lo-deck__art--constellation {
+  background:
+    radial-gradient(1.5px 1.5px at 20% 30%, #fff6dd 50%, transparent),
+    radial-gradient(1.5px 1.5px at 70% 25%, #fff6dd 50%, transparent),
+    radial-gradient(2px 2px at 45% 60%, #fff6dd 50%, transparent),
+    radial-gradient(1.5px 1.5px at 82% 70%, #fff6dd 50%, transparent),
+    radial-gradient(1.5px 1.5px at 33% 80%, #fff6dd 50%, transparent),
+    linear-gradient(160deg, #4a4068, #2e2742);
+}
+.lo-deck__art--constellation::before {
+  content: "";
+  position: absolute;
+  left: 20%;
+  top: 30%;
+  width: 62%;
+  height: 50%;
+  border-left: 1px solid rgba(227, 196, 104, 0.6);
+  border-bottom: 1px solid rgba(227, 196, 104, 0.6);
+  transform: rotate(8deg);
+}
+
+/* atom / science scene */
+.lo-deck__art--atom {
+  background: linear-gradient(160deg, #e4cfa6, #c9a86f);
+}
+.lo-deck__art--atom::before,
+.lo-deck__art--atom::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 56px;
+  border: 2px solid rgba(196, 96, 46, 0.55);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(30deg);
+}
+.lo-deck__art--atom::after { transform: translate(-50%, -50%) rotate(-30deg); }
+
+/* --- body --- */
+.lo-deck__body { padding: var(--lo-sp-5); }
+.lo-deck__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.lo-deck__title {
+  margin: 0 0 8px;
+  font-size: 23px;
+  line-height: 1.15;
+}
+.lo-deck__desc {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--lo-ink-soft);
+}
+.lo-deck__meta {
+  margin-top: var(--lo-sp-4);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--lo-muted);
+}

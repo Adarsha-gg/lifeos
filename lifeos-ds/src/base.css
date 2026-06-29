@@ -1,0 +1,39 @@
+/* LifeOS Quest Hub — base/reset scoped to design-system roots.
+   Applies the parchment background + editorial defaults wherever a
+   .lo-root wrapper is used, and sets sane defaults for all lo- elements. */
+.lo-root {
+  font-family: var(--lo-font-ui);
+  color: var(--lo-ink);
+  background: var(--lo-paper);
+  background-image: var(--lo-texture);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.lo-root *,
+[class^="lo-"],
+[class*=" lo-"] {
+  box-sizing: border-box;
+}
+
+/* shared editorial helpers */
+.lo-kicker {
+  font-family: var(--lo-font-ui);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lo-muted);
+}
+
+.lo-display {
+  font-family: var(--lo-font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--lo-ink);
+}
+
+.lo-serif {
+  font-family: var(--lo-font-serif);
+}

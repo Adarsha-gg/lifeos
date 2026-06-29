@@ -1,0 +1,46 @@
+.lo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--lo-font-ui);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: var(--lo-r-round);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.lo-pill__icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* soft (default) — tinted wash */
+.lo-pill--soft.lo-pill--neutral { background: var(--lo-paper-2); color: var(--lo-ink-soft); }
+.lo-pill--soft.lo-pill--accent  { background: var(--lo-accent-wash); color: #9c4318; }
+.lo-pill--soft.lo-pill--gold    { background: var(--lo-gold-wash); color: #8a6a1f; }
+.lo-pill--soft.lo-pill--green   { background: var(--lo-green-wash); color: #3f6634; }
+.lo-pill--soft.lo-pill--blue    { background: var(--lo-blue-wash); color: #33526d; }
+.lo-pill--soft.lo-pill--rose    { background: var(--lo-rose-wash); color: #8c3340; }
+
+/* solid */
+.lo-pill--solid { color: #fff; }
+.lo-pill--solid.lo-pill--neutral { background: var(--lo-ink-soft); }
+.lo-pill--solid.lo-pill--accent  { background: var(--lo-accent); }
+.lo-pill--solid.lo-pill--gold    { background: var(--lo-gold); color: #3a2c08; }
+.lo-pill--solid.lo-pill--green   { background: var(--lo-green); }
+.lo-pill--solid.lo-pill--blue    { background: var(--lo-blue); }
+.lo-pill--solid.lo-pill--rose    { background: var(--lo-rose); }
+
+/* outline */
+.lo-pill--outline { background: transparent; }
+.lo-pill--outline.lo-pill--neutral { border-color: var(--lo-line-strong); color: var(--lo-ink-soft); }
+.lo-pill--outline.lo-pill--accent  { border-color: var(--lo-accent); color: var(--lo-accent); }
+.lo-pill--outline.lo-pill--gold    { border-color: var(--lo-gold); color: #8a6a1f; }
+.lo-pill--outline.lo-pill--green   { border-color: var(--lo-green); color: var(--lo-green); }
+.lo-pill--outline.lo-pill--blue    { border-color: var(--lo-blue); color: var(--lo-blue); }
+.lo-pill--outline.lo-pill--rose    { border-color: var(--lo-rose); color: var(--lo-rose); }
