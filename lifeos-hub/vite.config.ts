@@ -3,10 +3,11 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
 // Single-page LifeOS Quest Hub. Imports the design system straight from source
-// so the hub and the library stay in lockstep. `base: "./"` keeps the built
-// output portable (drop dist/ anywhere static — Vercel-friendly).
+// so the hub and the library stay in lockstep. `base: "/hub/"` matches where the
+// site mounts it (public/hub) so assets resolve as /hub/assets/* — correct even
+// when served at /hub with no trailing slash (Vercel trailingSlash:false).
 export default defineConfig({
-  base: "./",
+  base: "/hub/",
   plugins: [react()],
   resolve: {
     // Import the design system straight from source. Force react/react-dom to
