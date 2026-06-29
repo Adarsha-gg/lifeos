@@ -1597,6 +1597,7 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
             "subtitle": str(lesson.get("subtitle") or ""),
             "minutes": int(lesson.get("minutes") or 10),
             "emoji": str(lesson.get("emoji") or "•"),
+            "accent": str(lesson.get("accent") or "#151719"),
             "url": f"/output/learn/{lesson_id}.html",
             "categories": _lesson_categories(lesson),
             "domain": str(meta.get("domain") or lesson.get("domain") or lesson.get("track") or "general"),
@@ -1605,149 +1606,126 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
     return catalog
 
 def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], today: date) -> str:
-    """Render /learn as a generated blog/publication issue."""
+    """Render /learn as a swipeable, horizontal card deck."""
     day = today.strftime("%A, %B %d").replace(" 0", " ")
-    featured = daily[0]
-    side_posts = "".join(
-        f"<a class='post' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
-        f"<span class='post-k'>{esc(l['emoji'])} {esc(l['minutes'])} min read</span>"
-        f"<strong>{esc(l['title'])}</strong><span>{esc(l['subtitle'])}</span></a>"
-        for l in daily[1:]
-    )
     daily_ids = {l["id"] for l in daily}
     rec_catalog = _recommendation_catalog(library, daily_ids)
     rec_data = json.dumps(rec_catalog, separators=(",", ":")).replace("</", "<\\/")
-    rec_fallback = "".join(
-        f"<a class='rec-card' href='/output/learn/{esc(l['id'])}.html'>"
-        f"<span>{esc(l['emoji'])} {esc(l['minutes'])} min</span>"
-        f"<strong>{esc(l['title'])}</strong><em>{esc(l['subtitle'])}</em></a>"
-        for l in daily[:3]
+    fallback_cards = "".join(
+        f"<article class='swipe-card' style='--c:{esc(l.get('accent', '#151719'))}' data-id='{esc(l['id'])}'>"
+        f"<div class='card-k'>{esc(l['emoji'])} {esc(l['minutes'])} min</div>"
+        f"<a class='card-main' href='/output/learn/{esc(l['id'])}.html'><strong>{esc(l['title'])}</strong>"
+        f"<span>{esc(l['subtitle'])}</span></a>"
+        f"<div class='card-actions'><span>← No</span><a href='/output/learn/{esc(l['id'])}.html'>Yes →</a></div></article>"
+        for l in daily[:8]
     )
-    archive_rows = "".join(
-        f"<a class='archive-row' href='/output/learn/{esc(l['id'])}.html' style='--c:{l['accent']}'>"
-        f"<span>{esc(l['emoji'])}</span><strong>{esc(l['title'])}</strong><em>{esc(l['minutes'])} min</em></a>"
-        for l in library
-        if l["id"] not in daily_ids
+    game_cards = "".join(
+        f"<a class='quick-card' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}' style='--c:{esc(g['accent'])}'>"
+        f"<span>{esc(g['emoji'])}</span><strong>{esc(g['title'])}</strong><em>{esc(g['blurb'])}</em></a>"
+        for g in GAME_CATALOG[:8]
     )
-    archive = f"<section class='archive'><h2>Archive</h2><div>{archive_rows}</div></section>" if archive_rows else ""
-    games = "".join(
-        f"<a class='game' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}' style='--c:{g['accent']}'>"
-        f"<span>{esc(g['emoji'])}</span><strong>{esc(g['title'])}</strong><small>{esc(g['blurb'])}</small></a>"
-        for g in GAME_CATALOG
+    track_count = len(track_catalog())
+    unit_count = sum(len(t.get("units", [])) for t in track_catalog())
+    quick_cards = (
+        "<a class='quick-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Knowledge graph</strong><em>Your learned nodes and prerequisites.</em></a>"
+        "<a class='quick-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training queue</strong><em>Review, frontier, mixed practice.</em></a>"
+        f"<a class='quick-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>{track_count} mastery tracks</strong><em>{unit_count} units underneath the deck.</em></a>"
+        + game_cards
     )
-    games_html = (
-        "<section class='arcade'><div class='section-head'><h2>Practice Lab</h2>"
-        "<p>Games generated from the ideas, not quiz cards.</p></div>"
-        f"<div class='games'>{games}</div></section>"
-    ) if games else ""
-    graph_link = (
-        "<a class='graph-link' href='/output/learn/skill-tree.html'>"
-        "<span>Personal Knowledge Graph</span><strong>Open your learning map</strong>"
-        "<em>Only learned nodes enter your graph; the library stays underneath.</em></a>"
-        "<a class='graph-link engine' href='/output/learn/learning-system.html'>"
-        "<span>Training Queue</span><strong>Review, frontier, mixed practice</strong>"
-        "<em>Math Academy-style scheduling over your personal graph.</em></a>"
-    )
-    curriculum_tracks = track_catalog()
-    curriculum_html = ""
-    if curriculum_tracks:
-        track_cards = []
-        for tr in curriculum_tracks:
-            unit_links = "".join(
-                f"<a class='cur-unit' href='{esc(u['url'])}'>{esc(u['title'])}"
-                f" <em>{esc(u.get('minutes', ''))}m</em></a>"
-                for u in tr.get("units", [])
-            )
-            track_cards.append(
-                f"<div class='cur-track' style='--c:{tr['color']}'>"
-                f"<div class='cur-track-head'><strong>{esc(tr['name'])}</strong>"
-                f"<span>{tr['unit_count']} units · {esc(tr.get('domain', ''))}</span></div>"
-                f"<div class='cur-units'>{unit_links}</div></div>"
-            )
-        curriculum_html = (
-            "<section class='curriculum'><div class='section-head'>"
-            "<h2>Curriculum / Mastery Tracks</h2>"
-            "<p>Prerequisite skill tree, deep sections, thinking questions — original LifeOS infrastructure. "
-            "<a href='/output/learn/curriculum.html'>Full curriculum overview →</a></p>"
-            "</div>"
-            f"<div class='cur-tracks'>{''.join(track_cards)}</div></section>"
-        )
     recommendation_js = r"""<script>
 (function(){
 const CATALOG=window.LIFEOS_REC_CATALOG||[];
 const PROGRESS_KEY='lifeos.learning.progress.v1';
-const CAT_KEY='lifeos.recs.category.v1';
-const note=document.querySelector('[data-rec-note]');
-const list=document.querySelector('[data-rec-list]');
+const CAT_KEY='lifeos.deck.category.v1';
+const SKIP_KEY='lifeos.deck.skipped.v1';
+const YES_KEY='lifeos.deck.yes.v1';
+const rail=document.querySelector('[data-card-rail]');
+const note=document.querySelector('[data-deck-note]');
 const buttons=[...document.querySelectorAll('[data-cat]')];
-function loadProgress(){try{return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}')}catch{return {}}}
+const reset=document.querySelector('[data-reset-skips]');
+const scrollLeft=document.querySelector('[data-scroll-left]');
+const scrollRight=document.querySelector('[data-scroll-right]');
+function load(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}}
+function save(key,value){localStorage.setItem(key,JSON.stringify(value))}
+function loadProgress(){return load(PROGRESS_KEY,{})}
 function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function attr(s){return esc(s).replace(/"/g,'&quot;')}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function doneIds(progress){return new Set(Object.keys(progress.done||{}))}
 function prefs(done){const out={};for(const id of done){const item=CATALOG.find(x=>x.id===id);if(!item)continue;(item.categories||[]).forEach(c=>out[c]=(out[c]||0)+1)}return out}
-function card(item){return `<a class="rec-card" href="${esc(item.url)}"><span>${esc(item.emoji)} ${esc(item.minutes)} min · ${(item.categories||['general']).map(esc).join(', ')}</span><strong>${esc(item.title)}</strong><em>${esc(item.subtitle||'')}</em></a>`}
-function pick(cat){
- const progress=loadProgress(),done=doneIds(progress),pref=prefs(done),historyCount=done.size,day=new Date().toISOString().slice(0,10);
- let pool=CATALOG.filter(item=>!done.has(item.id));
+function categoryLabel(item){return (item.categories||['general']).join(', ')}
+function card(item){return `<article class="swipe-card" style="--c:${attr(item.accent||'#151719')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}">
+  <div class="card-k"><span>${esc(item.emoji)} ${esc(item.minutes)} min · ${esc(categoryLabel(item))}</span><button type="button" data-no aria-label="No, skip this card">← no</button></div>
+  <a class="card-main" href="${attr(item.url)}"><strong>${esc(item.title)}</strong><span>${esc(item.subtitle||'')}</span></a>
+  <div class="card-actions"><button type="button" data-no>← No</button><button type="button" data-yes>Yes →</button></div>
+</article>`}
+function ranked(cat){
+ const progress=loadProgress(),done=doneIds(progress),pref=prefs(done),skipped=load(SKIP_KEY,{}),historyCount=done.size,day=new Date().toISOString().slice(0,10);
+ let pool=CATALOG.filter(item=>!done.has(item.id)&&!skipped[item.id]);
  if(cat&&cat!=='all')pool=pool.filter(item=>(item.categories||[]).includes(cat));
- let scored=pool.map(item=>{
-  let s=item.daily?25:0;
-  if(historyCount){for(const c of item.categories||[])s+=(pref[c]||0)*30}
-  else{s+=item.daily?100:0}
-  s+=(hash(item.id+day)%1000)/1000;
-  return {item,s};
- }).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.item);
- if(scored.length<3){
-  const seen=new Set(scored.map(x=>x.id));
-  CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,3-scored.length).forEach(item=>scored.push(item));
- }
- if(note)note.textContent=historyCount?`Three picks based on ${historyCount} completed read${historyCount===1?'':'s'}. Choose a category to steer the next set.`:'No reading history yet — using today’s issue. Choose a category to steer the first set.';
- if(list)list.innerHTML=scored.map(card).join('');
+ let scored=pool.map(item=>{let s=item.daily?60:0;if(historyCount){for(const c of item.categories||[])s+=(pref[c]||0)*28}else{s+=item.daily?100:0}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
+ if(scored.length<12){const seen=new Set(scored.map(x=>x.id));CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,12-scored.length).forEach(item=>scored.push(item))}
+ return {items:scored.slice(0,36),historyCount,skippedCount:Object.keys(skipped).length};
 }
-function setCat(cat){localStorage.setItem(CAT_KEY,cat);buttons.forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));pick(cat)}
+function currentCat(){return localStorage.getItem(CAT_KEY)||'all'}
+function render(cat=currentCat()){
+ if(!rail)return;
+ const r=ranked(cat);
+ if(note)note.textContent=r.historyCount?`Right = yes/read. Left = no/skip. Ranked from ${r.historyCount} completed read${r.historyCount===1?'':'s'}${r.skippedCount?`, ${r.skippedCount} skipped`:''}.`:`Right = yes/read. Left = no/skip. No history yet, so today’s cards are first.`;
+ rail.innerHTML=r.items.length?r.items.map(card).join(''):`<div class="empty-card"><strong>No cards left here.</strong><span>Reset skipped cards or choose another category.</span></div>`;
+ attachCards();
+}
+function setCat(cat){localStorage.setItem(CAT_KEY,cat);buttons.forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));render(cat)}
+function skip(card){const skipped=load(SKIP_KEY,{});skipped[card.dataset.id]={at:new Date().toISOString()};save(SKIP_KEY,skipped);card.classList.add('gone-left');setTimeout(()=>render(),180)}
+function yes(card){const yeses=load(YES_KEY,{});yeses[card.dataset.id]={at:new Date().toISOString()};save(YES_KEY,yeses);card.classList.add('gone-right');setTimeout(()=>{location.href=card.dataset.url},120)}
+function attachCards(){
+ [...rail.querySelectorAll('.swipe-card')].forEach(card=>{
+  card.querySelectorAll('[data-no]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();skip(card)}));
+  card.querySelectorAll('[data-yes]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();yes(card)}));
+  let sx=0,sy=0,dx=0,drag=false,down=false;
+  card.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;down=true;drag=false;sx=e.clientX;sy=e.clientY;dx=0;card.setPointerCapture?.(e.pointerId)});
+  card.addEventListener('pointermove',e=>{if(!down)return;dx=e.clientX-sx;const dy=e.clientY-sy;if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)){drag=true;card.dataset.dragged='1';card.style.transform=`translateX(${dx}px) rotate(${dx/22}deg)`;card.style.opacity=String(Math.max(.45,1-Math.abs(dx)/420));e.preventDefault()}});
+  function end(e){if(!down)return;down=false;if(drag&&dx>90){e.preventDefault();yes(card);return}if(drag&&dx<-90){e.preventDefault();skip(card);return}card.style.transform='';card.style.opacity='';setTimeout(()=>{delete card.dataset.dragged},0)}
+  card.addEventListener('pointerup',end);card.addEventListener('pointercancel',end);
+  card.querySelector('.card-main')?.addEventListener('click',e=>{if(card.dataset.dragged==='1'){e.preventDefault();delete card.dataset.dragged}});
+ });
+}
 buttons.forEach(b=>b.addEventListener('click',()=>setCat(b.dataset.cat)));
-setCat(localStorage.getItem(CAT_KEY)||'all');
+reset?.addEventListener('click',()=>{localStorage.removeItem(SKIP_KEY);render()});
+scrollLeft?.addEventListener('click',()=>rail?.scrollBy({left:-Math.min(420,innerWidth*.82),behavior:'smooth'}));
+scrollRight?.addEventListener('click',()=>rail?.scrollBy({left:Math.min(420,innerWidth*.82),behavior:'smooth'}));
+setCat(currentCat());
 })();
 </script>"""
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
 <meta name='color-scheme' content='light'>
-<title>LifeOS Field Notes</title>
+<title>LifeOS Learning Deck</title>
 <style>
-*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;overflow-x:hidden;background:#f7f5f0;color:#151719;font-family:Inter,system-ui,-apple-system,sans-serif}}a{{color:inherit}}
-.wrap{{width:min(1080px,calc(100% - 32px));margin:0 auto;padding:18px 0 46px}}
-.topbar{{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #d8d3c8;padding:0 0 14px;margin-bottom:28px;color:#5f665f;font:800 13px/1 system-ui;flex-wrap:wrap}}
-.topbar a{{text-decoration:none;color:#5f665f}}.mast{{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;border-bottom:3px solid #151719;padding-bottom:22px;margin-bottom:26px}}
-.mast h1{{font:800 clamp(44px,8vw,86px)/.9 Georgia,serif;margin:0;color:#151719;letter-spacing:0}}.mast p{{margin:12px 0 0;color:#4e5651;font:500 18px/1.55 Georgia,serif;max-width:720px}}
-.issue{{font:800 12px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;color:#6a5b35;text-align:right}}
-.bloggrid{{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:24px;align-items:start}}
-.feature{{display:grid;grid-template-columns:120px 1fr;gap:22px;text-decoration:none;color:#151719;border-bottom:1px solid #d8d3c8;padding-bottom:24px}}.feature .emoji{{font-size:92px;line-height:1;filter:none}}
-.feature-k{{font:800 12px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.feature h2{{font:800 clamp(34px,5vw,58px)/.95 Georgia,serif;margin:8px 0 12px;color:#151719;letter-spacing:0}}
-.feature p{{font:500 19px/1.58 Georgia,serif;color:#3f4743;margin:0 0 12px}}.readline{{font:800 13px/1 system-ui;color:#77736a}}
-.side{{border-left:1px solid #d8d3c8;padding-left:22px}}.section-head h2,.archive h2{{font:800 22px/1 Georgia,serif;margin:0 0 4px;color:#151719}}.section-head p{{margin:0 0 14px;color:#636b66;font:600 14px/1.45 system-ui}}
-.post{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:14px 0}}.post-k{{display:block;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.post strong{{display:block;font:800 22px/1.08 Georgia,serif;margin:6px 0;color:#151719}}.post span:last-child{{display:block;color:#59605c;font:500 15px/1.45 Georgia,serif}}
-.recs{{border:1px solid #d8d3c8;background:#fff;margin:0 0 26px;padding:16px}}.rec-head{{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}}.rec-head h2{{font:850 25px/1.05 Georgia,serif;margin:0;color:#151719}}.rec-head p{{margin:5px 0 0;color:#636b66;font:650 13px/1.35 system-ui}}.catbar{{display:flex;gap:7px;flex-wrap:wrap}}.catbar button{{border:1px solid #d8d3c8;background:#fff;color:#151719;padding:8px 10px;border-radius:999px;font:850 12px/1 system-ui;cursor:pointer}}.catbar button.active{{background:#151719;color:#fff;border-color:#151719}}.rec-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}}.rec-card{{display:block;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:12px 0}}.rec-card span{{font:850 11px/1 system-ui;text-transform:uppercase;letter-spacing:.1em;color:#77736a}}.rec-card strong{{display:block;font:850 20px/1.1 Georgia,serif;margin:6px 0;color:#151719}}.rec-card em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal}}
-.levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:22px 0}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:#151719}}
-.graph-link{{display:block;text-decoration:none;color:#151719;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:16px 0 0}}.graph-link.engine{{border-color:#d8d3c8}}.graph-link span{{font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#77736a}}.graph-link.engine span{{color:#77736a}}.graph-link strong{{display:block;font:800 22px/1 Georgia,serif;margin:6px 0}}.graph-link em{{display:block;font:600 13px/1.35 system-ui;color:#5f665f;font-style:normal;overflow-wrap:break-word}}
-.arcade,.archive,.curriculum{{margin-top:34px;border-top:1px solid #151719;padding-top:18px}}.games{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}.game{{display:block;text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;padding:13px}}.game span{{font-size:24px}}.game strong{{display:block;font:800 17px/1.1 system-ui;margin:7px 0 4px}}.game small{{display:block;color:#5f665f;font:600 13px/1.35 system-ui}}
-.cur-tracks{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}.cur-track{{background:#fff;border:1px solid #d8d3c8;padding:14px}}.cur-track-head strong{{display:block;font:800 18px/1.1 system-ui}}.cur-track-head span{{display:block;color:#5f665f;font:650 12px/1.35 system-ui;margin-top:4px}}.cur-units{{margin-top:10px}}.cur-unit{{display:block;text-decoration:none;color:#151719;font:750 15px/1.35 system-ui;padding:7px 0;border-top:1px solid #ece8df}}.cur-unit em{{font:700 11px/1 system-ui;color:#77736a;font-style:normal;margin-left:6px}}
-.archive-row{{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;text-decoration:none;color:#151719;border-top:1px solid #d8d3c8;padding:12px 0}}.archive-row strong{{font:750 17px/1.2 system-ui}}.archive-row em{{font:700 12px/1 system-ui;color:#77736a;font-style:normal}}.foot{{border-top:1px solid #d8d3c8;color:#676b66;margin-top:32px;padding-top:16px;font:600 13px/1.45 system-ui}}
-@media(max-width:760px){{.wrap{{width:min(620px,calc(100% - 32px));overflow:hidden}}.topbar{{justify-content:flex-start}}.mast{{display:block}}.mast h1{{font-size:46px}}.mast p{{display:block;width:31ch;max-width:100%;white-space:normal;overflow-wrap:break-word;font-size:17px}}.issue{{text-align:left;margin-top:20px}}.bloggrid{{display:block}}.feature{{display:block;min-width:0}}.feature article{{display:block;width:100%;min-width:0}}.feature h2{{font-size:36px;max-width:13ch;overflow-wrap:break-word}}.feature p{{display:block;width:31ch;max-width:100%;white-space:normal;font-size:17px;overflow-wrap:break-word}}.feature .emoji{{font-size:72px;margin-bottom:8px}}.side{{border-left:0;padding-left:0;margin-top:22px}}.rec-grid,.games,.cur-tracks{{grid-template-columns:1fr}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
+*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#f7f5f0;color:#151719;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}a{{color:inherit}}
+.wrap{{width:min(1040px,calc(100% - 28px));margin:0 auto;padding:16px 0 44px}}
+.topbar{{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #d8d3c8;padding:0 0 12px;margin-bottom:22px;color:#5f665f;font:850 13px/1 system-ui;flex-wrap:wrap}}.topbar a{{text-decoration:none;color:#5f665f}}
+.hero{{padding:8px 0 18px;border-bottom:3px solid #151719;margin-bottom:18px}}.kicker{{font:900 12px/1 system-ui;letter-spacing:.15em;text-transform:uppercase;color:#776b4f;margin-bottom:8px}}.hero h1{{font:900 clamp(42px,10vw,88px)/.86 Georgia,serif;margin:0;color:#151719}}.hero p{{font:600 18px/1.45 system-ui;color:#4e5651;max-width:680px;margin:12px 0 0}}
+.deck{{margin:18px 0 26px}}.deck-head{{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}}.deck-head h2{{font:900 28px/1 Georgia,serif;margin:0}}.deck-head p{{font:650 14px/1.4 system-ui;color:#636b66;margin:6px 0 0;max-width:620px}}.deck-tools{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}.deck-tools button,.catbar button{{border:1px solid #d8d3c8;background:#fff;color:#151719;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui;cursor:pointer}}.deck-tools button{{min-width:42px}}.catbar{{display:flex;gap:7px;overflow-x:auto;padding:14px 0 8px;-webkit-overflow-scrolling:touch}}.catbar button{{white-space:nowrap}}.catbar button.active{{background:#151719;color:#fff;border-color:#151719}}
+.swipe-hint{{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;color:#77736a;font:900 12px/1 system-ui;text-transform:uppercase;letter-spacing:.1em;margin:8px 0 10px}}.swipe-hint span:nth-child(2){{text-align:center;color:#5d645f}}.swipe-hint span:last-child{{text-align:right}}
+.card-rail{{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 2px 18px;margin:0 -2px;-webkit-overflow-scrolling:touch}}.card-rail::-webkit-scrollbar{{height:9px}}.card-rail::-webkit-scrollbar-thumb{{background:#d2ccc0;border-radius:999px}}
+.swipe-card{{position:relative;scroll-snap-align:center;flex:0 0 min(82vw,360px);min-height:430px;background:#fff;border:1px solid #d8d3c8;border-top:9px solid var(--c,#151719);border-radius:24px;padding:18px;box-shadow:0 18px 44px rgba(30,26,16,.12);display:flex;flex-direction:column;transition:transform .18s ease,opacity .18s ease;touch-action:pan-y}}.swipe-card.gone-left{{transform:translateX(-130%) rotate(-12deg)!important;opacity:0!important}}.swipe-card.gone-right{{transform:translateX(130%) rotate(12deg)!important;opacity:0!important}}
+.card-k{{display:flex;justify-content:space-between;gap:10px;align-items:center;font:900 11px/1.2 system-ui;letter-spacing:.1em;text-transform:uppercase;color:#77736a}}.card-k button{{border:0;background:#f0ede5;color:#5f665f;border-radius:999px;padding:8px 10px;font:900 11px/1 system-ui}}
+.card-main{{display:flex;flex-direction:column;text-decoration:none;color:#151719;gap:12px;flex:1;padding:22px 0}}.card-main strong{{font:900 clamp(31px,8vw,48px)/.93 Georgia,serif;letter-spacing:-.02em}}.card-main span{{font:600 17px/1.5 system-ui;color:#59605c}}
+.card-actions{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}}.card-actions button,.card-actions a{{display:grid;place-items:center;text-decoration:none;border-radius:16px;padding:15px 12px;font:950 15px/1 system-ui;border:1px solid #d8d3c8;background:#f6f3ec;color:#151719;cursor:pointer}}.card-actions [data-yes],.card-actions a:last-child{{background:#151719;color:#fff;border-color:#151719}}.empty-card{{flex:0 0 min(82vw,360px);border:1px dashed #c9c2b5;border-radius:24px;background:#fff;padding:28px;font:700 16px/1.4 system-ui;color:#5f665f}}.empty-card strong{{display:block;color:#151719;font:900 28px/1 Georgia,serif;margin-bottom:8px}}
+.quick{{border-top:1px solid #151719;margin-top:24px;padding-top:18px}}.quick h2{{font:900 24px/1 Georgia,serif;margin:0 0 12px}}.quick-rail{{display:flex;gap:12px;overflow-x:auto;padding-bottom:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}}.quick-card{{scroll-snap-align:start;flex:0 0 min(76vw,270px);text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;border-radius:18px;padding:15px;min-height:170px}}.quick-card span{{font-size:31px}}.quick-card strong{{display:block;font:900 21px/1.05 system-ui;margin:12px 0 6px}}.quick-card em{{display:block;color:#5f665f;font:650 13px/1.4 system-ui;font-style:normal}}
+.levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:20px 0;border-radius:16px}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:#151719}}.foot{{border-top:1px solid #d8d3c8;color:#676b66;margin-top:26px;padding-top:16px;font:650 13px/1.45 system-ui}}
+@media(max-width:760px){{.wrap{{width:calc(100% - 24px)}}.topbar{{justify-content:flex-start}}.hero h1{{font-size:42px;line-height:.9;overflow-wrap:break-word}}.hero p{{font-size:16px}}.deck-head{{align-items:flex-start}}.swipe-card{{flex-basis:86vw;min-height:410px}}.card-main strong{{font-size:36px}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
 </style></head><body><div class='wrap'>
-<div class='topbar'><span>LifeOS Field Notes</span><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/m'>Control</a></div>
-<header class='mast'><div><h1>Field Notes</h1><p>Generated essays for the morning: read the idea like a blog post, then use a game to make it stick.</p></div><div class='issue'>{esc(day)}</div></header>
-<section class='recs' data-recs><div class='rec-head'><div><h2>Recommended reads</h2><p data-rec-note>Three picks tuned to what you have read. Choose a category when you want a different lane.</p></div><div class='catbar' data-catbar><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></div></div><div class='rec-grid' data-rec-list>{rec_fallback}</div></section>
-<main class='bloggrid'><section>
-<a class='feature' href='/output/learn/{esc(featured['id'])}.html' style='--c:{featured['accent']}'>
-<div class='emoji'>{esc(featured['emoji'])}</div><article><div class='feature-k'>Today's lead essay</div><h2>{esc(featured['title'])}</h2><p>{esc(featured['subtitle'])}</p><div class='readline'>{esc(featured['minutes'])} min read -></div></article></a>
+<div class='topbar'><span>LifeOS Learning Deck</span><a href='/output/learn/skill-tree.html'>Graph</a><a href='/output/learn/learning-system.html'>Training</a></div>
+<header class='hero'><div class='kicker'>{esc(day)} · mobile first</div><h1>Swipe the deck</h1><p>No dashboard. Scroll cards sideways. Right is yes/read; left is no/skip. Category chips steer the next cards.</p></header>
+<section class='deck'><div class='deck-head'><div><h2>Recommended cards</h2><p data-deck-note>Right = yes/read. Left = no/skip.</p></div><div class='deck-tools'><button type='button' data-scroll-left>←</button><button type='button' data-scroll-right>→</button><button type='button' data-reset-skips>Reset skipped</button></div></div>
+<div class='catbar' data-catbar><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></div>
+<div class='swipe-hint'><span>← No</span><span>horizontal cards</span><span>Yes →</span></div><div class='card-rail' data-card-rail>{fallback_cards}</div></section>
 <div class='levelbox'><div><b data-level-label>Level 1</b><span data-xp-label>0 XP earned in this browser</span></div><div class='levelbar'><i data-xp-bar></i></div></div>
-{graph_link}
-</section><aside class='side'><div class='section-head'><h2>Today's Posts</h2><p>The rest of this morning's issue.</p></div>{side_posts}</aside></main>
-{archive}
-{curriculum_html}
-{games_html}
-<div class='foot'>A fresh issue is generated every morning by LifeOS. Each article points toward practice, not passive reading.</div>
+<section class='quick'><h2>More cards</h2><div class='quick-rail'>{quick_cards}</div></section>
+<div class='foot'>A fresh learning deck is generated every morning by LifeOS. Public pages link sources and add original companion material; private full texts stay local.</div>
 </div><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}<script>
 (function(){{
 const KEY='lifeos.learning.progress.v1';
