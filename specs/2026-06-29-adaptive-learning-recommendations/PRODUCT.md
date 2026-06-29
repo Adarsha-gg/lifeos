@@ -76,3 +76,14 @@ A user opens LifeOS and sees:
 - Recommendation cards explain why each item is recommended.
 - Reset clears visible levels and recommendations without reload.
 - Graph render performance remains below 100ms.
+
+## Expansion: game-like progression
+
+The adaptive layer should feel like a game progression system, not a spreadsheet. Leveling up should produce visible feedback, ranks, and a clear path of what comes first, what comes next, and what unlocks later.
+
+Additional behavior requirements:
+
+- The learner sees a rank/title derived from level.
+- The training queue shows a quest/path sequence, ordered from review/current step to ready-next to stretch/future unlocks.
+- When the learner crosses a level threshold, the UI shows a level-up moment and stores that it was seen locally.
+- The path must remain explainable: every quest item still says why it is recommended.
