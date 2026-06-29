@@ -223,7 +223,7 @@ def render(payload: dict[str, Any]) -> str:
 <meta name='color-scheme' content='light'>
 <title>LifeOS Learning Engine</title>
 <style>{CSS}</style></head><body><main class='shell'>
-<div class='top'><a href='/learn'>&larr; Field Notes</a><a href='/output/learn/skill-tree.html'>Knowledge Graph</a></div>
+<div class='top'><a href='/learn'>&larr; Field Notes</a><a href='/output/learn/skill-tree.html'>Knowledge Graph</a><a href='/output/learn/profile.html'>Profile</a></div>
 <section class='hero'><div><div class='k'>Adaptive learner model</div><h1>Training Queue</h1><p>LifeOS assesses your current level from the graph, then recommends reviews, ready next lessons, and stretch items with reasons instead of dumping a flat library.</p></div><aside class='sourcebox'>{sources}</aside></section>
 <section class='model'><div class='metric'><span>Personal XP</span><b data-xp>0 XP</b></div><div class='metric'><span>Level</span><b data-level>Level 1</b></div><div class='metric'><span>Known Graph</span><b data-known>0 nodes</b></div><div class='metric wide'><span>Assessment</span><b data-assessment>0 ready next</b><div class='rank'><strong>Novice Pathfinder</strong><small>Next level at 110 XP</small></div><div class='domainMini' data-domains></div></div></section>
 <section class='quest'><h2>Quest Path</h2><p>A game-like route through the graph: clear the review, take the ready quest, then unlock the stretch node.</p><div class='questPath'></div></section>
