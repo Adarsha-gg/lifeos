@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ProfileRankHeader,
   MainQuestCard,
@@ -26,6 +26,9 @@ import {
   type DeckLesson,
   type QuestStep,
 } from "./data";
+
+const SWIPE_THRESHOLD = 86;
+const SWIPE_EXIT_MS = 360;
 
 const NAV = [
   { id: "character", ic: "🛡️", label: "Your character" },
@@ -248,20 +251,67 @@ export function Hub() {
   const miniGraph = usePersonalMiniGraph({ nodeCount: stats.nodeCount, masteredCount: stats.masteredCount, nodes: [], edges: [] });
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState(0);
+  const [drag, setDrag] = useState({ dx: 0, dy: 0, active: false });
+  const [exit, setExit] = useState<"left" | "right" | null>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
   const deck = useHubDeck(DECK);
 
   const lesson = deck[card % Math.max(1, deck.length)] || DECK[0];
   const questPath = useMemo(() => questPathFor(lesson), [lesson]);
   const isTeacher = profile.role === "teacher";
+  const swipeStyle = {
+    "--hub-dx": `${drag.dx}px`,
+    "--hub-dy": `${Math.max(-28, Math.min(28, drag.dy))}px`,
+    "--hub-rot": `${drag.dx / 18}deg`,
+    "--hub-no-opacity": `${drag.dx < -18 ? Math.min(1, Math.abs(drag.dx) / 112) : 0}`,
+    "--hub-read-opacity": `${drag.dx > 18 ? Math.min(1, drag.dx / 112) : 0}`,
+  } as CSSProperties & Record<string, string>;
 
-  function skipLesson() {
-    writeDeckChoice(LS_KEYS.skipped, lesson.id);
-    setCard((c) => c + 1);
+  function resetSwipe() {
+    dragStart.current = null;
+    setDrag({ dx: 0, dy: 0, active: false });
   }
 
-  function readLesson() {
-    writeDeckChoice(LS_KEYS.yes, lesson.id);
-    window.location.href = lesson.href;
+  function commitSwipe(direction: "left" | "right") {
+    if (exit) return;
+    setExit(direction);
+    if (direction === "left") writeDeckChoice(LS_KEYS.skipped, lesson.id);
+    else writeDeckChoice(LS_KEYS.yes, lesson.id);
+    window.setTimeout(() => {
+      if (direction === "right") {
+        window.location.href = lesson.href;
+        return;
+      }
+      setCard((c) => c + 1);
+      setExit(null);
+      resetSwipe();
+    }, SWIPE_EXIT_MS);
+  }
+
+  function onSwipeStart(event: ReactPointerEvent<HTMLDivElement>) {
+    if (exit || (event.target as HTMLElement).closest("button,a")) return;
+    dragStart.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setDrag({ dx: 0, dy: 0, active: true });
+  }
+
+  function onSwipeMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragStart.current || exit) return;
+    const dx = event.clientX - dragStart.current.x;
+    const dy = event.clientY - dragStart.current.y;
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) event.preventDefault();
+    setDrag({ dx, dy, active: true });
+  }
+
+  function onSwipeEnd(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragStart.current || exit) return;
+    const dx = event.clientX - dragStart.current.x;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+      commitSwipe(dx < 0 ? "left" : "right");
+      return;
+    }
+    resetSwipe();
   }
 
   return (
@@ -363,18 +413,31 @@ export function Hub() {
           </div>
           <div className="hub__deck-wrap">
             <div className="hub__deck-stack">
-              <DeckCard
-                title={lesson.title}
-                description={lesson.description}
-                domain={lesson.domain}
-                levelFit={lesson.levelFit}
-                minutes={lesson.minutes}
-                art={lesson.art}
-              />
+              <div
+                key={lesson.id}
+                className={["hub__swipe-card", drag.active ? "is-dragging" : "", exit ? `exit-${exit}` : ""].filter(Boolean).join(" ")}
+                style={swipeStyle}
+                onPointerDown={onSwipeStart}
+                onPointerMove={onSwipeMove}
+                onPointerUp={onSwipeEnd}
+                onPointerCancel={resetSwipe}
+              >
+                <span className="hub__swipe-badge hub__swipe-badge--no">NO</span>
+                <span className="hub__swipe-badge hub__swipe-badge--read">READ</span>
+                <DeckCard
+                  title={lesson.title}
+                  description={lesson.description}
+                  domain={lesson.domain}
+                  levelFit={lesson.levelFit}
+                  minutes={lesson.minutes}
+                  art={lesson.art}
+                />
+              </div>
             </div>
             <DeckControls
-              onNo={skipLesson}
-              onRead={readLesson}
+              onNo={() => commitSwipe("left")}
+              onRead={() => commitSwipe("right")}
+              disabled={Boolean(exit)}
             />
             <div className="hub__hint">Card {(card % Math.max(1, deck.length)) + 1} of {deck.length} · graph-ranked · only "No" and "Read"</div>
           </div>
