@@ -50,6 +50,7 @@ def main() -> int:
 
     commands = [
         [sys.executable, "tools/lifeos_paul_graham.py", "build", "--refresh", "--sleep", "0"],
+        [sys.executable, "tools/lifeos_games.py", "build"],
         [sys.executable, "tools/lifeos_skill_tree.py", "build"],
         [sys.executable, "tools/lifeos_learning_engine.py", "build"],
         [sys.executable, "tools/lifeos_lessons.py", "build"],
