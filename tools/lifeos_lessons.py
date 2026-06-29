@@ -1600,6 +1600,19 @@ def _art_kind_for_lesson(lesson: dict[str, Any], cats: list[str] | None = None) 
     return "general"
 
 
+def _lesson_level(lesson: dict[str, Any]) -> int:
+    raw = str((lesson.get("curriculum") or {}).get("difficulty") or lesson.get("difficulty") or lesson.get("difficulty_level") or "").lower()
+    if any(word in raw for word in ["intro", "beginner", "foundation", "basic"]):
+        return 1
+    if any(word in raw for word in ["intermediate", "medium", "core"]):
+        return 3
+    if any(word in raw for word in ["advanced", "hard", "expert"]):
+        return 5
+    minutes = int(lesson.get("minutes") or 10)
+    sections = len(lesson.get("sections") or [])
+    return max(1, min(8, round(1 + max(0, minutes - 12) / 18 + min(2, sections / 5))))
+
+
 def _lesson_card_description(lesson: dict[str, Any]) -> str:
     title = str(lesson.get("title") or "").strip()
     low_title = title.lower()
@@ -1643,6 +1656,7 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
             "categories": cats,
             "domain": str(meta.get("domain") or lesson.get("domain") or lesson.get("track") or "general"),
             "daily": lesson_id in daily_ids,
+            "level": _lesson_level(lesson),
         })
     return catalog
 
@@ -1659,7 +1673,7 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
         fallback.append(
             f"<article class='deck-card' style='--i:{idx};--c:{esc(lesson.get('accent', '#151719'))}' data-id='{esc(lesson['id'])}' data-url='/output/learn/{esc(lesson['id'])}.html'>"
             f"<div class='photo art-{esc(art_kind)}'><i></i><b></b><em></em><span></span></div>"
-            f"<div class='copy'><div class='meta'>{esc(lesson['minutes'])} min · {esc(', '.join(cats))}</div>"
+            f"<div class='copy'><div class='meta'>L{_lesson_level(lesson)} · {esc(lesson['minutes'])} min · {esc(', '.join(cats))}</div>"
             f"<h2>{esc(lesson['title'])}</h2><p>{esc(_lesson_card_description(lesson))}</p></div></article>"
         )
     fallback_cards = "".join(fallback)
@@ -1686,17 +1700,18 @@ function attr(s){return esc(s).replace(/"/g,'&quot;')}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function doneIds(){const progress=load(PROGRESS_KEY,{});return new Set(Object.keys(progress.done||{}))}
 function prefs(done){const out={};for(const id of done){const item=CATALOG.find(x=>x.id===id);if(!item)continue;(item.categories||[]).forEach(c=>out[c]=(out[c]||0)+1)}return out}
+function learnerLevel(done){let xp=0;for(const id of done){const item=CATALOG.find(x=>x.id===id);xp+=item?(item.minutes||10)*6:80}return Math.floor(Math.sqrt(xp/110))+1}
 function ranked(cat){
- const done=doneIds(),pref=prefs(done),skipped=load(SKIP_KEY,{}),day=new Date().toISOString().slice(0,10);
+ const done=doneIds(),pref=prefs(done),lvl=learnerLevel(done),skipped=load(SKIP_KEY,{}),day=new Date().toISOString().slice(0,10);
  let pool=CATALOG.filter(item=>!done.has(item.id)&&!skipped[item.id]);
  if(cat&&cat!=='all')pool=pool.filter(item=>(item.categories||[]).includes(cat));
- let scored=pool.map(item=>{let s=item.daily?70:0;if(done.size){for(const c of item.categories||[])s+=(pref[c]||0)*30}else{s+=item.daily?120:0}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
+ let scored=pool.map(item=>{let s=item.daily?70:0;const gap=Math.abs((item.level||1)-(lvl+1));s+=Math.max(0,70-gap*20);if(done.size){for(const c of item.categories||[])s+=(pref[c]||0)*24}else{s+=item.daily?120:25}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
  if(scored.length<18){const seen=new Set(scored.map(x=>x.id));CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,18-scored.length).forEach(item=>scored.push(item))}
  return scored;
 }
 function card(item,i){const cats=(item.categories||['general']).join(', '),kind=item.artKind||'general';return `<article class="deck-card" style="--i:${i};--c:${attr(item.accent||'#111')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}">
  <div class="photo art-${attr(kind)}"><i></i><b></b><em></em><span></span></div>
- <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.description||item.subtitle||'')}</p></div>
+ <div class="copy"><div class="meta">L${esc(item.level||1)} · ${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.description||item.subtitle||'')}</p></div>
 </article>`}
 function renderStack(){
  if(!stage)return;
