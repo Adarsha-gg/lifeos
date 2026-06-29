@@ -23,6 +23,8 @@ import {
   TRACKS,
   LEVEL_SYSTEM,
   LS_KEYS,
+  type DeckLesson,
+  type QuestStep,
 } from "./data";
 
 const NAV = [
@@ -44,7 +46,7 @@ function go(id: string, close: () => void) {
 }
 
 type MiniGraph = { nodeCount: number; masteredCount: number; nodes: GraphPreviewNode[]; edges: [number, number][] };
-type GraphNode = { id: string; title?: string; domain?: string; x?: number; y?: number };
+type GraphNode = { id: string; title?: string; domain?: string; kind?: string; url?: string; summary?: string; difficulty?: string; xp?: number; x?: number; y?: number };
 type GraphEdge = { from: string; to: string };
 
 function readDone() {
@@ -54,6 +56,30 @@ function readDone() {
   } catch {
     return {};
   }
+}
+
+function readMap(key: string) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "{}");
+    return parsed && typeof parsed === "object" ? parsed as Record<string, any> : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDeckChoice(key: string, id: string) {
+  const current = readMap(key);
+  current[id] = { at: new Date().toISOString() };
+  localStorage.setItem(key, JSON.stringify(current));
+}
+
+function hash(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }
 
 function shortLabel(title = "Node") {
@@ -130,15 +156,113 @@ function usePersonalMiniGraph(fallback: MiniGraph): MiniGraph {
   return mini;
 }
 
+function domainTitle(id?: string, domains?: { id: string; name?: string }[]) {
+  const name = domains?.find((d) => d.id === id)?.name;
+  if (name) return name;
+  return (id || "Learning").replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function artForDomain(domain?: string): DeckLesson["art"] {
+  if (domain === "physics" || domain === "math") return "atom";
+  if (domain === "history" || domain === "statecraft" || domain === "culture") return "compass";
+  if (domain === "systems" || domain === "growth" || domain === "startup") return "scroll";
+  return "constellation";
+}
+
+function levelFitFor(node: GraphNode) {
+  if (node.difficulty === "stretch") return "Level 4 stretch";
+  if (node.difficulty === "advanced") return "Level 3 fit";
+  return "Level 2 fit";
+}
+
+function toDeckLesson(node: GraphNode, domains?: { id: string; name?: string }[]): DeckLesson {
+  return {
+    id: node.id,
+    title: node.title || shortLabel(node.id),
+    description: node.summary || `Continue this source-first lesson from your graph frontier.`,
+    domain: domainTitle(node.domain, domains),
+    levelFit: levelFitFor(node),
+    minutes: Math.max(8, Math.round((Number(node.xp) || 90) / 6)),
+    art: artForDomain(node.domain),
+    href: node.url || "/learn/",
+  };
+}
+
+function useHubDeck(fallback: DeckLesson[]) {
+  const [lessons, setLessons] = useState<DeckLesson[]>(fallback);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        let response = await fetch("/learn/knowledge-graph.json", { cache: "no-store" });
+        if (!response.ok) response = await fetch("/output/learn/knowledge-graph.json", { cache: "no-store" });
+        if (!response.ok) throw new Error("knowledge graph unavailable");
+        const graph = await response.json() as { nodes: GraphNode[]; edges: GraphEdge[]; domains?: { id: string; name?: string }[] };
+        const doneIds = new Set(Object.keys(readDone()));
+        const skipped = readMap(LS_KEYS.skipped);
+        const adjacent = new Set<string>();
+        for (const edge of graph.edges || []) {
+          if (doneIds.has(edge.from)) adjacent.add(edge.to);
+          if (doneIds.has(edge.to)) adjacent.add(edge.from);
+        }
+        const day = new Date().toISOString().slice(0, 10);
+        const ranked = (graph.nodes || [])
+          .filter((node) => node.url && node.kind !== "game" && !doneIds.has(node.id) && !skipped[node.id])
+          .map((node) => {
+            let score = 0;
+            if (adjacent.has(node.id)) score += 120;
+            if (node.difficulty === "core") score += 45;
+            if (node.difficulty === "advanced") score += 28;
+            score += Math.max(0, 40 - Math.abs((Number(node.x) || 40) - 28) / 2);
+            score += (hash(node.id + day) % 1000) / 1000;
+            return { node, score };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 8)
+          .map(({ node }) => toDeckLesson(node, graph.domains));
+        if (!cancelled && ranked.length) setLessons(ranked);
+      } catch {
+        if (!cancelled) setLessons(fallback);
+      }
+    }
+    load();
+    window.addEventListener("storage", load);
+    return () => { cancelled = true; window.removeEventListener("storage", load); };
+  }, [fallback]);
+  return lessons;
+}
+
+function questPathFor(lesson: DeckLesson): QuestStep[] {
+  const nextXp = Math.max(60, lesson.minutes * 6);
+  return [
+    QUEST_PATH[0],
+    { lane: "Ready next", title: lesson.title, detail: `${lesson.levelFit} · ${lesson.minutes} min · from your graph frontier.`, state: "ready", xp: nextXp, href: lesson.href },
+    QUEST_PATH[2],
+    QUEST_PATH[3],
+  ];
+}
+
 export function Hub() {
   const profile = useMemo(loadProfile, []);
   const stats = useMemo(graphStats, []);
   const miniGraph = usePersonalMiniGraph({ nodeCount: stats.nodeCount, masteredCount: stats.masteredCount, nodes: [], edges: [] });
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState(0);
+  const deck = useHubDeck(DECK);
 
-  const lesson = DECK[card % DECK.length];
+  const lesson = deck[card % Math.max(1, deck.length)] || DECK[0];
+  const questPath = useMemo(() => questPathFor(lesson), [lesson]);
   const isTeacher = profile.role === "teacher";
+
+  function skipLesson() {
+    writeDeckChoice(LS_KEYS.skipped, lesson.id);
+    setCard((c) => c + 1);
+  }
+
+  function readLesson() {
+    writeDeckChoice(LS_KEYS.yes, lesson.id);
+    window.location.href = lesson.href;
+  }
 
   return (
     <div className="lo-root hub">
@@ -228,7 +352,7 @@ export function Hub() {
             <h2 className="hub__section-title">Your quest path</h2>
             <Pill tone="neutral" variant="soft">4 steps</Pill>
           </div>
-          <QuestPath steps={QUEST_PATH} />
+          <QuestPath steps={questPath} />
         </section>
 
         {/* 5 — learning deck */}
@@ -249,10 +373,10 @@ export function Hub() {
               />
             </div>
             <DeckControls
-              onNo={() => setCard((c) => c + 1)}
-              onRead={() => { window.location.href = lesson.href; }}
+              onNo={skipLesson}
+              onRead={readLesson}
             />
-            <div className="hub__hint">Card {(card % DECK.length) + 1} of {DECK.length} · only "No" and "Read", as it should be</div>
+            <div className="hub__hint">Card {(card % Math.max(1, deck.length)) + 1} of {deck.length} · graph-ranked · only "No" and "Read"</div>
           </div>
         </section>
 

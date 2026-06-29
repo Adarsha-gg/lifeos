@@ -41,8 +41,10 @@
   );
 }
 
-.lo-qstep__body { padding-bottom: var(--lo-sp-5); color: inherit; text-decoration: none; display: block; }
-.lo-qstep__body.is-clickable { cursor: pointer; }
+.lo-qstep__body { padding: 0 0 var(--lo-sp-5); color: inherit; text-decoration: none; display: block; position: relative; }
+.lo-qstep__body.is-clickable { cursor: pointer; border-radius: 14px; padding: 8px 32px 12px 10px; margin: -8px 0 4px -10px; }
+.lo-qstep__body.is-clickable::after { content: "→"; position: absolute; right: 10px; top: 12px; color: var(--lo-muted); font-weight: 900; }
+.lo-qstep__body.is-clickable:hover { background: rgba(255,248,236,.72); box-shadow: inset 0 0 0 1px var(--lo-line); }
 .lo-qstep__body.is-clickable:hover .lo-qstep__title { color: var(--lo-accent); text-decoration: underline; text-underline-offset: 3px; }
 .lo-qstep__top {
   display: flex;

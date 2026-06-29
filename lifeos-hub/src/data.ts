@@ -95,6 +95,7 @@ export function loadProfile(): Profile {
 }
 
 export interface DeckLesson {
+  id: string;
   title: string;
   description: string;
   domain: string;
@@ -106,6 +107,7 @@ export interface DeckLesson {
 
 export const DECK: DeckLesson[] = [
   {
+    id: "analytical-minds-al-khwarizmi-and-algorithmic-procedure",
     title: "Al-Khwarizmi & Algorithmic Procedure",
     description:
       "How a 9th-century scholar in Baghdad turned vague problem-solving into a precise, repeatable method — and accidentally named the algorithm.",
@@ -116,6 +118,7 @@ export const DECK: DeckLesson[] = [
     href: "/learn/analytical-minds-al-khwarizmi-and-algorithmic-procedure.html",
   },
   {
+    id: "systems-donella-meadows-and-leverage-points",
     title: "Donella Meadows & Leverage Points",
     description:
       "Where to push on a system to change its behavior — and why the most obvious places are usually the weakest.",
@@ -126,6 +129,7 @@ export const DECK: DeckLesson[] = [
     href: "/learn/",
   },
   {
+    id: "cosmology-emmy-noether-and-symmetry",
     title: "Emmy Noether & Symmetry",
     description:
       "The quiet theorem linking symmetry to conservation laws — one of the most beautiful ideas in physics, told from the source.",

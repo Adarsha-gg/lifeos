@@ -78,7 +78,7 @@ export function GraphPreview({
         </Pill>
       </div>
 
-      <div className="lo-graph__canvas">
+      <button type="button" className="lo-graph__canvas" onClick={onOpen} aria-label="Open full knowledge map">
         {nodes.length ? <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="lo-graph__svg">
           {edges.map(([a, b], i) =>
             nodes[a] && nodes[b] ? (
@@ -114,7 +114,8 @@ export function GraphPreview({
               {n.label}
             </span>
           ))}
-      </div>
+        {onOpen && <span className="lo-graph__portal">Tap to open full map</span>}
+      </button>
 
       <div className="lo-graph__foot">
         <div className="lo-graph__legend">
