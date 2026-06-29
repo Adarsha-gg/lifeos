@@ -1613,6 +1613,20 @@ def _image_query_for_lesson(lesson: dict[str, Any], cats: list[str] | None = Non
     return title or "Library"
 
 
+def _lesson_card_description(lesson: dict[str, Any]) -> str:
+    subtitle = str(lesson.get("subtitle") or "").strip()
+    lead = str(lesson.get("lead") or "").strip()
+    if lead and lead != subtitle:
+        return _plain_text(lead, 300)
+    for _heading, body in _section_records(lesson.get("sections") or []):
+        if body and body != subtitle:
+            return _plain_text(body, 300)
+    summary = str(lesson.get("summary") or "").strip()
+    if summary and summary != subtitle:
+        return _plain_text(summary, 300)
+    return _plain_text(subtitle, 300)
+
+
 def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) -> list[dict[str, Any]]:
     catalog: list[dict[str, Any]] = []
     for lesson in library:
@@ -1625,6 +1639,7 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
             "id": lesson_id,
             "title": str(lesson.get("title") or lesson_id),
             "subtitle": str(lesson.get("subtitle") or ""),
+            "description": _lesson_card_description(lesson),
             "minutes": int(lesson.get("minutes") or 10),
             "emoji": str(lesson.get("emoji") or "•"),
             "accent": str(lesson.get("accent") or "#151719"),
@@ -1649,7 +1664,7 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
             f"<article class='deck-card' style='--i:{idx};--c:{esc(lesson.get('accent', '#151719'))}' data-id='{esc(lesson['id'])}' data-url='/output/learn/{esc(lesson['id'])}.html' data-image-query='{esc(_image_query_for_lesson(lesson, cats))}'>"
             f"<div class='photo'><div class='photo-fallback'>{esc(lesson['emoji'])}</div></div>"
             f"<div class='copy'><div class='meta'>{esc(lesson['minutes'])} min · {esc(', '.join(cats))}</div>"
-            f"<h2>{esc(lesson['title'])}</h2><p>{esc(lesson['subtitle'])}</p></div></article>"
+            f"<h2>{esc(lesson['title'])}</h2><p>{esc(_lesson_card_description(lesson))}</p></div></article>"
         )
     fallback_cards = "".join(fallback)
     game_cards = "".join(
@@ -1689,7 +1704,7 @@ function ranked(cat){
 }
 function card(item,i){const cats=(item.categories||['general']).join(', ');return `<article class="deck-card" style="--i:${i};--c:${attr(item.accent||'#111')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}" data-image-query="${attr(item.imageQuery||item.title)}">
  <div class="photo"><div class="photo-fallback">${esc(item.emoji||'📚')}</div></div>
- <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.subtitle||'')}</p></div>
+ <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.description||item.subtitle||'')}</p></div>
 </article>`}
 async function imageFor(query){
  if(!query)return null;
@@ -1754,13 +1769,13 @@ setCat(localStorage.getItem(CAT_KEY)||'all');
 .stage{{position:relative;width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;perspective:1400px}}
 .deck-card{{position:absolute;inset:0;background:#222;color:#fff;border-radius:22px;overflow:hidden;box-shadow:0 18px 44px rgba(23,27,33,.20);transform:translate3d(0,calc(var(--i)*9px),0) scale(calc(1 - var(--i)*.035));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.16);transition:transform 560ms cubic-bezier(.16,1,.3,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y}}
 .deck-card.exit-left{{transform:translate3d(-124%,20px,0) rotate(-18deg)!important;opacity:0!important}}.deck-card.exit-right{{transform:translate3d(124%,20px,0) rotate(18deg)!important;opacity:0!important}}
-.photo{{position:absolute;inset:0;background:linear-gradient(135deg,var(--c),#1f2937);background-size:cover;background-position:center;display:grid;place-items:center}}.photo:after{{content:'';position:absolute;inset:38% 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.28) 38%,rgba(0,0,0,.82))}}.photo-fallback{{font-size:82px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}}.photo.loaded .photo-fallback{{display:none}}
-.copy{{position:absolute;left:0;right:0;bottom:0;padding:0 19px 23px;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.55)}}.meta{{display:inline-flex;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border-radius:999px;padding:6px 9px;font:900 10px/1 system-ui;letter-spacing:.11em;text-transform:uppercase;color:#fff;margin-bottom:9px}}.copy h2{{font:950 clamp(30px,8vw,42px)/.92 Georgia,serif;letter-spacing:-.035em;margin:0;color:#fff}}.copy p{{font:750 15px/1.34 system-ui;color:rgba(255,255,255,.92);margin:9px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+.photo{{position:absolute;inset:0;background:linear-gradient(135deg,var(--c),#1f2937);background-size:cover;background-position:center;display:grid;place-items:center}}.photo:after{{content:'';position:absolute;inset:26% 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.34) 34%,rgba(0,0,0,.86))}}.photo-fallback{{font-size:82px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}}.photo.loaded .photo-fallback{{display:none}}
+.copy{{position:absolute;left:0;right:0;bottom:0;padding:0 20px 24px;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.6)}}.meta{{display:inline-flex;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border-radius:999px;padding:6px 9px;font:900 10px/1 system-ui;letter-spacing:.11em;text-transform:uppercase;color:#fff;margin-bottom:10px}}.copy h2{{font:850 clamp(29px,7.4vw,39px)/.94 Georgia,'Iowan Old Style',serif;letter-spacing:-.025em;margin:0;color:#fff}}.copy p{{font:500 16px/1.36 Georgia,'Iowan Old Style',serif;color:rgba(255,255,255,.94);margin:10px 0 0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}}
 .action-dock{{height:82px;display:flex;align-items:center;justify-content:center;gap:18px}}.swipe-btn{{display:grid;place-items:center;border-radius:999px;border:0;background:#fff;box-shadow:0 10px 28px rgba(30,38,52,.16);font:950 28px/1 system-ui;cursor:pointer}}.swipe-btn.small{{width:44px;height:44px;font-size:20px;color:#b8a15c}}.swipe-btn.no{{width:62px;height:62px;color:#ff4458}}.swipe-btn.star{{width:52px;height:52px;color:#24a7ff}}.swipe-btn.yes{{width:62px;height:62px;color:#20c76f}}
 .empty{{width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;border:1px dashed #d7d9df;border-radius:22px;display:grid;place-items:center;text-align:center;padding:30px;color:#6e737d;background:#fff}}.empty[hidden]{{display:none}}.empty h2{{font:900 34px/.95 Georgia,serif;margin:0 0 8px;color:#1b1b1f}}
 .chips{{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 9px;-webkit-overflow-scrolling:touch;scrollbar-width:none}}.chips::-webkit-scrollbar{{display:none}}.chips button{{white-space:nowrap;border:1px solid #e0e2e8;background:#fff;color:#535967;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui}}.chips button.active{{background:#111;color:#fff;border-color:#111}}
 .hint{{display:none}}.mini{{margin-top:4px;border-top:1px solid #e5e7ec;padding-top:11px}}.mini h2{{font:900 17px/1 system-ui;margin:0 0 10px;color:#1b1b1f}}.mini-rail{{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}}.mini-card{{flex:0 0 136px;min-height:104px;scroll-snap-align:start;text-decoration:none;background:#fff;border:1px solid #e3e5eb;border-radius:20px;padding:12px;color:#1b1b1f;box-shadow:0 8px 22px rgba(21,28,40,.06)}}.mini-card span{{font-size:22px}}.mini-card strong{{display:block;font:900 14px/1.08 system-ui;margin-top:10px}}
-@media(max-height:780px){{.tinderbar{{height:48px}}.stage,.empty{{height:clamp(455px,65svh,535px)}}.action-dock{{height:72px}}.copy h2{{font-size:31px}}.copy p{{font-size:13.5px;-webkit-line-clamp:2}}}}
+@media(max-height:780px){{.tinderbar{{height:48px}}.stage,.empty{{height:clamp(455px,65svh,535px)}}.action-dock{{height:72px}}.copy h2{{font-size:30px}}.copy p{{font-size:14.5px;-webkit-line-clamp:3}}}}
 @media(prefers-reduced-motion:reduce){{.deck-card{{transition:none}}}}
 </style></head><body><main class='app'>
 <header class='tinderbar'><button type='button' aria-label='Profile'>👤</button><div class='brand'>LifeOS</div><button type='button' aria-label='Settings'>⚙</button></header>
