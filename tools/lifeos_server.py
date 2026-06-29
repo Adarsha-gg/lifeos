@@ -242,7 +242,7 @@ def record_learning_progress(payload: dict[str, Any], user: dict[str, Any] | Non
     }
     save_learning_progress(progress)
     total = sum(int(item.get("xp") or 0) for item in progress.get("done", {}).values() if isinstance(item, dict))
-    level = int((total / 110) ** 0.5) + 1
+    level = 4 if total >= 1440 else 3 if total >= 720 else 2 if total >= 240 else 1
     return {"ok": True, "node_id": node_id, "xp": xp_value, "total_xp": total, "level": level}
 
 
