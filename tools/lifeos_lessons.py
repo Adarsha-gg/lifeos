@@ -1649,8 +1649,7 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
             f"<article class='deck-card' style='--i:{idx};--c:{esc(lesson.get('accent', '#151719'))}' data-id='{esc(lesson['id'])}' data-url='/output/learn/{esc(lesson['id'])}.html' data-image-query='{esc(_image_query_for_lesson(lesson, cats))}'>"
             f"<div class='photo'><div class='photo-fallback'>{esc(lesson['emoji'])}</div></div>"
             f"<div class='copy'><div class='meta'>{esc(lesson['minutes'])} min · {esc(', '.join(cats))}</div>"
-            f"<h2>{esc(lesson['title'])}</h2><p>{esc(lesson['subtitle'])}</p>"
-            f"<div class='actions'><button type='button' data-no>← No</button><button type='button' data-yes>Read →</button></div></div></article>"
+            f"<h2>{esc(lesson['title'])}</h2><p>{esc(lesson['subtitle'])}</p></div></article>"
         )
     fallback_cards = "".join(fallback)
     game_cards = "".join(
@@ -1669,6 +1668,9 @@ const IMG_KEY='lifeos.deck.images.v1';
 const stage=document.querySelector('[data-deck-stage]');
 const chips=[...document.querySelectorAll('[data-cat]')];
 const empty=document.querySelector('[data-empty]');
+const globalNo=document.querySelector('[data-global-no]');
+const globalYes=document.querySelector('[data-global-yes]');
+const globalStar=document.querySelector('[data-global-star]');
 let queue=[];
 function load(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}}
 function save(key,value){localStorage.setItem(key,JSON.stringify(value))}
@@ -1687,7 +1689,7 @@ function ranked(cat){
 }
 function card(item,i){const cats=(item.categories||['general']).join(', ');return `<article class="deck-card" style="--i:${i};--c:${attr(item.accent||'#111')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}" data-image-query="${attr(item.imageQuery||item.title)}">
  <div class="photo"><div class="photo-fallback">${esc(item.emoji||'📚')}</div></div>
- <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.subtitle||'')}</p><div class="actions"><button type="button" data-no>← No</button><button type="button" data-yes>Read →</button></div></div>
+ <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.subtitle||'')}</p></div>
 </article>`}
 async function imageFor(query){
  if(!query)return null;
@@ -1724,8 +1726,6 @@ function advance(card,dir){
  setTimeout(()=>{const next=queue.shift(); if(dir>0&&card.dataset.url){location.href=card.dataset.url;return} renderStack();},360);
 }
 function attach(root){
- root.querySelectorAll('[data-no]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();advance(b.closest('.deck-card'),-1)}));
- root.querySelectorAll('[data-yes]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();advance(b.closest('.deck-card'),1)}));
  root.querySelectorAll('.deck-card').forEach(card=>{
   let sx=0,sy=0,dx=0,dy=0,down=false,drag=false;
   card.addEventListener('pointerdown',e=>{if(e.target.closest('button,a'))return;down=true;drag=false;sx=e.clientX;sy=e.clientY;card.setPointerCapture?.(e.pointerId)});
@@ -1735,6 +1735,9 @@ function attach(root){
  });
 }
 chips.forEach(c=>c.addEventListener('click',()=>setCat(c.dataset.cat)));
+globalNo?.addEventListener('click',()=>advance(topCard(),-1));
+globalYes?.addEventListener('click',()=>advance(topCard(),1));
+globalStar?.addEventListener('click',()=>advance(topCard(),1));
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')advance(topCard(),-1);if(e.key==='ArrowRight')advance(topCard(),1)});
 setCat(localStorage.getItem(CAT_KEY)||'all');
 })();
@@ -1745,22 +1748,24 @@ setCat(localStorage.getItem(CAT_KEY)||'all');
 <meta name='color-scheme' content='light'>
 <title>LifeOS Deck</title>
 <style>
-*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#080808;color:#f8f4ea;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}body{{display:grid;place-items:start center}}a{{color:inherit}}
-.app{{width:min(430px,100vw);min-height:100svh;padding:28px 14px 18px;background:#080808}}
-.stage{{position:relative;width:min(350px,calc(100vw - 44px));height:clamp(430px,54svh,510px);margin:3svh auto 0;perspective:1400px}}
-.deck-card{{position:absolute;inset:0;background:#f8f4ea;color:#161411;border-radius:28px;overflow:hidden;box-shadow:0 22px 70px rgba(0,0,0,.45);transform:translate3d(0,calc(var(--i)*11px),0) scale(calc(1 - var(--i)*.05));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.13);transition:transform 520ms cubic-bezier(.18,.9,.18,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y}}
+*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#f6f7fb;color:#1b1b1f;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}body{{display:grid;place-items:start center}}a{{color:inherit}}
+.app{{width:min(430px,100vw);min-height:100svh;padding:0 12px 18px;background:#f6f7fb}}
+.tinderbar{{height:56px;display:flex;align-items:center;justify-content:space-between;color:#a4a7ae}}.tinderbar button{{border:0;background:transparent;color:#a4a7ae;font-size:23px;width:44px;height:44px;border-radius:999px}}.brand{{font:950 24px/1 system-ui;letter-spacing:-.04em;background:linear-gradient(90deg,#ff4458,#ff7a3d);-webkit-background-clip:text;background-clip:text;color:transparent}}
+.stage{{position:relative;width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;perspective:1400px}}
+.deck-card{{position:absolute;inset:0;background:#222;color:#fff;border-radius:22px;overflow:hidden;box-shadow:0 18px 44px rgba(23,27,33,.20);transform:translate3d(0,calc(var(--i)*9px),0) scale(calc(1 - var(--i)*.035));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.16);transition:transform 560ms cubic-bezier(.16,1,.3,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y}}
 .deck-card.exit-left{{transform:translate3d(-124%,20px,0) rotate(-18deg)!important;opacity:0!important}}.deck-card.exit-right{{transform:translate3d(124%,20px,0) rotate(18deg)!important;opacity:0!important}}
-.photo{{height:60%;background:linear-gradient(135deg,var(--c),#111);background-size:cover;background-position:center;display:grid;place-items:center;position:relative}}.photo:after{{content:'';position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.42))}}.photo-fallback{{font-size:68px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}}.photo.loaded .photo-fallback{{display:none}}
-.copy{{height:40%;padding:14px 16px 15px;display:flex;flex-direction:column;background:#f8f4ea}}.meta{{font:900 10px/1 system-ui;letter-spacing:.13em;text-transform:uppercase;color:#847b6d;margin-bottom:7px}}.copy h2{{font:950 clamp(26px,7.2vw,36px)/.92 Georgia,serif;letter-spacing:-.035em;margin:0;color:#111}}.copy p{{font:700 14.5px/1.32 system-ui;color:#5b5a54;margin:8px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
-.actions{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}}.actions button{{border:0;border-radius:999px;padding:12px 10px;font:950 14px/1 system-ui;cursor:pointer;box-shadow:inset 0 0 0 1px #ded6c8;background:#efe9dc;color:#17130f}}.actions [data-yes]{{background:#111;color:#fff;box-shadow:none}}
-.empty{{width:min(350px,calc(100vw - 44px));height:clamp(430px,54svh,510px);margin:3svh auto 0;border:1px dashed rgba(255,255,255,.25);border-radius:28px;display:grid;place-items:center;text-align:center;padding:30px;color:#d9d0c0}}.empty[hidden]{{display:none}}.empty h2{{font:900 34px/.95 Georgia,serif;margin:0 0 8px}}
-.chips{{display:flex;gap:8px;overflow-x:auto;padding:9px 2px 7px;-webkit-overflow-scrolling:touch;scrollbar-width:none}}.chips::-webkit-scrollbar{{display:none}}.chips button{{white-space:nowrap;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#f8f4ea;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui;backdrop-filter:blur(10px)}}.chips button.active{{background:#f8f4ea;color:#111;border-color:#f8f4ea}}
-.hint{{display:flex;justify-content:space-between;color:#beb4a4;font:900 10px/1 system-ui;text-transform:uppercase;letter-spacing:.12em;padding:7px 20px 5px}}.mini{{margin-top:4px;border-top:1px solid rgba(255,255,255,.14);padding-top:11px}}.mini h2{{font:900 17px/1 system-ui;margin:0 0 10px;color:#f8f4ea}}.mini-rail{{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}}.mini-card{{flex:0 0 136px;min-height:108px;scroll-snap-align:start;text-decoration:none;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:12px;color:#f8f4ea}}.mini-card span{{font-size:22px}}.mini-card strong{{display:block;font:900 14px/1.08 system-ui;margin-top:10px}}
-@media(max-height:780px){{.stage,.empty{{height:clamp(405px,54svh,470px);margin-top:2svh}}.copy h2{{font-size:29px}}.copy p{{font-size:13.5px;-webkit-line-clamp:2}}.photo-fallback{{font-size:60px}}.app{{padding-top:18px}}}}
+.photo{{position:absolute;inset:0;background:linear-gradient(135deg,var(--c),#1f2937);background-size:cover;background-position:center;display:grid;place-items:center}}.photo:after{{content:'';position:absolute;inset:38% 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.28) 38%,rgba(0,0,0,.82))}}.photo-fallback{{font-size:82px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}}.photo.loaded .photo-fallback{{display:none}}
+.copy{{position:absolute;left:0;right:0;bottom:0;padding:0 19px 23px;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.55)}}.meta{{display:inline-flex;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border-radius:999px;padding:6px 9px;font:900 10px/1 system-ui;letter-spacing:.11em;text-transform:uppercase;color:#fff;margin-bottom:9px}}.copy h2{{font:950 clamp(30px,8vw,42px)/.92 Georgia,serif;letter-spacing:-.035em;margin:0;color:#fff}}.copy p{{font:750 15px/1.34 system-ui;color:rgba(255,255,255,.92);margin:9px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+.action-dock{{height:82px;display:flex;align-items:center;justify-content:center;gap:18px}}.swipe-btn{{display:grid;place-items:center;border-radius:999px;border:0;background:#fff;box-shadow:0 10px 28px rgba(30,38,52,.16);font:950 28px/1 system-ui;cursor:pointer}}.swipe-btn.small{{width:44px;height:44px;font-size:20px;color:#b8a15c}}.swipe-btn.no{{width:62px;height:62px;color:#ff4458}}.swipe-btn.star{{width:52px;height:52px;color:#24a7ff}}.swipe-btn.yes{{width:62px;height:62px;color:#20c76f}}
+.empty{{width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;border:1px dashed #d7d9df;border-radius:22px;display:grid;place-items:center;text-align:center;padding:30px;color:#6e737d;background:#fff}}.empty[hidden]{{display:none}}.empty h2{{font:900 34px/.95 Georgia,serif;margin:0 0 8px;color:#1b1b1f}}
+.chips{{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 9px;-webkit-overflow-scrolling:touch;scrollbar-width:none}}.chips::-webkit-scrollbar{{display:none}}.chips button{{white-space:nowrap;border:1px solid #e0e2e8;background:#fff;color:#535967;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui}}.chips button.active{{background:#111;color:#fff;border-color:#111}}
+.hint{{display:none}}.mini{{margin-top:4px;border-top:1px solid #e5e7ec;padding-top:11px}}.mini h2{{font:900 17px/1 system-ui;margin:0 0 10px;color:#1b1b1f}}.mini-rail{{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}}.mini-card{{flex:0 0 136px;min-height:104px;scroll-snap-align:start;text-decoration:none;background:#fff;border:1px solid #e3e5eb;border-radius:20px;padding:12px;color:#1b1b1f;box-shadow:0 8px 22px rgba(21,28,40,.06)}}.mini-card span{{font-size:22px}}.mini-card strong{{display:block;font:900 14px/1.08 system-ui;margin-top:10px}}
+@media(max-height:780px){{.tinderbar{{height:48px}}.stage,.empty{{height:clamp(455px,65svh,535px)}}.action-dock{{height:72px}}.copy h2{{font-size:31px}}.copy p{{font-size:13.5px;-webkit-line-clamp:2}}}}
 @media(prefers-reduced-motion:reduce){{.deck-card{{transition:none}}}}
 </style></head><body><main class='app'>
+<header class='tinderbar'><button type='button' aria-label='Profile'>👤</button><div class='brand'>LifeOS</div><button type='button' aria-label='Settings'>⚙</button></header>
 <section class='stage' data-deck-stage>{fallback_cards}</section><section class='empty' data-empty hidden><div><h2>No cards left.</h2><p>Pick another lane or come back tomorrow.</p></div></section>
-<div class='hint'><span>← no</span><span>{esc(day)}</span><span>read →</span></div>
+<div class='action-dock' aria-label='Swipe actions'><button class='swipe-btn small' type='button' aria-label='Back'>↺</button><button class='swipe-btn no' type='button' data-global-no aria-label='No'>×</button><button class='swipe-btn star' type='button' data-global-star aria-label='Deep read'>★</button><button class='swipe-btn yes' type='button' data-global-yes aria-label='Read'>♥</button></div>
 <nav class='chips' aria-label='Categories'><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></nav>
 <section class='mini'><h2>More</h2><div class='mini-rail'><a class='mini-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Graph</strong></a><a class='mini-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training</strong></a><a class='mini-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>Curriculum</strong></a>{game_cards}</div></section>
 </main><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}</body></html>"""
