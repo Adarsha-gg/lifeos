@@ -1584,36 +1584,31 @@ def _lesson_categories(lesson: dict[str, Any]) -> list[str]:
     return cats
 
 
-def _image_query_for_lesson(lesson: dict[str, Any], cats: list[str] | None = None) -> str:
-    if lesson.get("hero_article"):
-        return str(lesson["hero_article"])
+def _art_kind_for_lesson(lesson: dict[str, Any], cats: list[str] | None = None) -> str:
     cats = cats or _lesson_categories(lesson)
-    title = str(lesson.get("title") or "")
-    text = f"{title} {' '.join(cats)}".lower()
-    if "programmer" in text or "lisp" in text or "python" in text or "language" in text:
-        return "Programmer"
-    if "paul graham" in text or "startup" in cats:
-        return "Y Combinator"
-    if "history" in cats or "strategy" in cats:
-        if "napoleon" in text:
-            return "Napoleon"
-        if "caesar" in text or "rome" in text:
-            return "Roman Forum"
-        return "History"
+    title = str(lesson.get("title") or "").lower()
+    if "startup" in cats or "paul graham" in title or "programmer" in title:
+        return "startup"
     if "science" in cats:
-        if "complex" in text:
-            return "Mandelbrot set"
-        if "sound" in text:
-            return "Sound wave"
-        if "tesla" in text:
-            return "Nikola Tesla"
-        return "Science"
+        return "science"
+    if "history" in cats:
+        return "history"
+    if "strategy" in cats:
+        return "strategy"
     if "philosophy" in cats:
-        return "The School of Athens"
-    return title or "Library"
+        return "philosophy"
+    return "general"
 
 
 def _lesson_card_description(lesson: dict[str, Any]) -> str:
+    title = str(lesson.get("title") or "").strip()
+    low_title = title.lower()
+    if "let the other 95%" in low_title:
+        return "Why great programmers are often invisible to normal hiring filters — and how a startup can turn overlooked talent into an unfair advantage."
+    if "don't talk to corp dev" in low_title:
+        return "How a flattering acquisition conversation can steal focus, weaken morale, and shift leverage away from founders before a deal even exists."
+    if "do things that don't scale" in low_title:
+        return "Why unscalable work is not inefficiency but instrumentation: a way to discover trust, friction, and user love before automation hides the truth."
     subtitle = str(lesson.get("subtitle") or "").strip()
     lead = str(lesson.get("lead") or "").strip()
     if lead and lead != subtitle:
@@ -1643,7 +1638,7 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
             "minutes": int(lesson.get("minutes") or 10),
             "emoji": str(lesson.get("emoji") or "•"),
             "accent": str(lesson.get("accent") or "#151719"),
-            "imageQuery": _image_query_for_lesson(lesson, cats),
+            "artKind": _art_kind_for_lesson(lesson, cats),
             "url": f"/output/learn/{lesson_id}.html",
             "categories": cats,
             "domain": str(meta.get("domain") or lesson.get("domain") or lesson.get("track") or "general"),
@@ -1660,9 +1655,10 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
     fallback = []
     for idx, lesson in enumerate(daily[:3]):
         cats = _lesson_categories(lesson)
+        art_kind = _art_kind_for_lesson(lesson, cats)
         fallback.append(
-            f"<article class='deck-card' style='--i:{idx};--c:{esc(lesson.get('accent', '#151719'))}' data-id='{esc(lesson['id'])}' data-url='/output/learn/{esc(lesson['id'])}.html' data-image-query='{esc(_image_query_for_lesson(lesson, cats))}'>"
-            f"<div class='photo'><div class='photo-fallback'>{esc(lesson['emoji'])}</div></div>"
+            f"<article class='deck-card' style='--i:{idx};--c:{esc(lesson.get('accent', '#151719'))}' data-id='{esc(lesson['id'])}' data-url='/output/learn/{esc(lesson['id'])}.html'>"
+            f"<div class='photo art-{esc(art_kind)}'><i></i><b></b><em></em><span></span></div>"
             f"<div class='copy'><div class='meta'>{esc(lesson['minutes'])} min · {esc(', '.join(cats))}</div>"
             f"<h2>{esc(lesson['title'])}</h2><p>{esc(_lesson_card_description(lesson))}</p></div></article>"
         )
@@ -1679,7 +1675,6 @@ const PROGRESS_KEY='lifeos.learning.progress.v1';
 const CAT_KEY='lifeos.deck.category.v2';
 const SKIP_KEY='lifeos.deck.skipped.v2';
 const YES_KEY='lifeos.deck.yes.v2';
-const IMG_KEY='lifeos.deck.images.v1';
 const stage=document.querySelector('[data-deck-stage]');
 const chips=[...document.querySelectorAll('[data-cat]')];
 const empty=document.querySelector('[data-empty]');
@@ -1702,34 +1697,16 @@ function ranked(cat){
  if(scored.length<18){const seen=new Set(scored.map(x=>x.id));CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,18-scored.length).forEach(item=>scored.push(item))}
  return scored;
 }
-function card(item,i){const cats=(item.categories||['general']).join(', ');return `<article class="deck-card" style="--i:${i};--c:${attr(item.accent||'#111')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}" data-image-query="${attr(item.imageQuery||item.title)}">
- <div class="photo"><div class="photo-fallback">${esc(item.emoji||'📚')}</div></div>
+function card(item,i){const cats=(item.categories||['general']).join(', '),kind=item.artKind||'general';return `<article class="deck-card" style="--i:${i};--c:${attr(item.accent||'#111')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}">
+ <div class="photo art-${attr(kind)}"><i></i><b></b><em></em><span></span></div>
  <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.description||item.subtitle||'')}</p></div>
 </article>`}
-async function imageFor(query){
- if(!query)return null;
- const cache=load(IMG_KEY,{}); if(cache[query])return cache[query];
- try{
-  const u='https://en.wikipedia.org/w/api.php?origin=*&action=query&prop=pageimages&piprop=thumbnail&pithumbsize=900&format=json&redirects=1&titles='+encodeURIComponent(query);
-  const data=await fetch(u).then(r=>r.json());
-  const pages=(data.query&&data.query.pages)||{}; const page=Object.values(pages)[0]||{}; const src=page.thumbnail&&page.thumbnail.source;
-  if(src){cache[query]=src;save(IMG_KEY,cache);return src;}
- }catch(e){}
- return null;
-}
-function hydrateImages(root=document){
- root.querySelectorAll('.deck-card').forEach(async card=>{
-  const photo=card.querySelector('.photo'); if(!photo||photo.dataset.loaded)return;
-  const src=await imageFor(card.dataset.imageQuery||'');
-  if(src){photo.style.backgroundImage=`linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.34)),url("${src}")`;photo.classList.add('loaded');photo.dataset.loaded='1';}
- });
-}
 function renderStack(){
  if(!stage)return;
  const visible=queue.slice(0,3);
  stage.innerHTML=visible.map(card).join('');
  empty.hidden=visible.length>0;
- attach(stage); hydrateImages(stage);
+ attach(stage);
 }
 function setCat(cat){localStorage.setItem(CAT_KEY,cat);chips.forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));queue=ranked(cat);renderStack()}
 function topCard(){return stage&&stage.querySelector('.deck-card')}
@@ -1767,10 +1744,10 @@ setCat(localStorage.getItem(CAT_KEY)||'all');
 .app{{width:min(430px,100vw);min-height:100svh;padding:0 12px 18px;background:#f6f7fb}}
 .tinderbar{{height:56px;display:flex;align-items:center;justify-content:space-between;color:#a4a7ae}}.tinderbar button{{border:0;background:transparent;color:#a4a7ae;font-size:23px;width:44px;height:44px;border-radius:999px}}.brand{{font:950 24px/1 system-ui;letter-spacing:-.04em;background:linear-gradient(90deg,#ff4458,#ff7a3d);-webkit-background-clip:text;background-clip:text;color:transparent}}
 .stage{{position:relative;width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;perspective:1400px}}
-.deck-card{{position:absolute;inset:0;background:#222;color:#fff;border-radius:22px;overflow:hidden;box-shadow:0 18px 44px rgba(23,27,33,.20);transform:translate3d(0,calc(var(--i)*9px),0) scale(calc(1 - var(--i)*.035));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.16);transition:transform 560ms cubic-bezier(.16,1,.3,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y}}
+.deck-card{{position:absolute;inset:0;background:#fff8ec;color:#17130f;border-radius:22px;overflow:hidden;box-shadow:0 18px 44px rgba(23,27,33,.18);transform:translate3d(0,calc(var(--i)*9px),0) scale(calc(1 - var(--i)*.035));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.16);transition:transform 560ms cubic-bezier(.16,1,.3,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y;display:flex;flex-direction:column}}
 .deck-card.exit-left{{transform:translate3d(-124%,20px,0) rotate(-18deg)!important;opacity:0!important}}.deck-card.exit-right{{transform:translate3d(124%,20px,0) rotate(18deg)!important;opacity:0!important}}
-.photo{{position:absolute;inset:0;background:linear-gradient(135deg,var(--c),#1f2937);background-size:cover;background-position:center;display:grid;place-items:center}}.photo:after{{content:'';position:absolute;inset:26% 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.34) 34%,rgba(0,0,0,.86))}}.photo-fallback{{font-size:82px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}}.photo.loaded .photo-fallback{{display:none}}
-.copy{{position:absolute;left:0;right:0;bottom:0;padding:0 20px 24px;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.6)}}.meta{{display:inline-flex;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border-radius:999px;padding:6px 9px;font:900 10px/1 system-ui;letter-spacing:.11em;text-transform:uppercase;color:#fff;margin-bottom:10px}}.copy h2{{font:850 clamp(29px,7.4vw,39px)/.94 Georgia,'Iowan Old Style',serif;letter-spacing:-.025em;margin:0;color:#fff}}.copy p{{font:500 16px/1.36 Georgia,'Iowan Old Style',serif;color:rgba(255,255,255,.94);margin:10px 0 0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}}
+.photo{{height:55%;position:relative;overflow:hidden;background:#8fc9e8;display:block;flex:none}}.photo:before{{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--sky1,#8fc9e8),var(--sky2,#f7c98b));opacity:.95}}.photo:after{{content:'';position:absolute;left:-8%;right:-8%;bottom:-18%;height:45%;border-radius:50% 50% 0 0;background:var(--ground,#224c3d);box-shadow:0 -26px 0 -12px rgba(255,255,255,.22)}}.photo i,.photo b,.photo em,.photo span{{position:absolute;display:block;z-index:2}}.photo i{{width:112px;height:112px;border-radius:999px;background:var(--sun,#ffd166);right:11%;top:13%;box-shadow:0 14px 40px rgba(0,0,0,.12)}}.photo b{{width:128px;height:86px;left:15%;bottom:21%;background:var(--shape,#fff8ec);border-radius:18px 18px 8px 8px;transform:rotate(-7deg);box-shadow:34px 18px 0 -12px rgba(255,255,255,.55)}}.photo em{{width:88px;height:88px;right:16%;bottom:20%;background:var(--accentArt,#ff6b5f);border-radius:22px;transform:rotate(18deg);opacity:.92}}.photo span{{width:180px;height:2px;left:18%;top:48%;background:rgba(255,255,255,.65);transform:rotate(-16deg);box-shadow:0 28px 0 rgba(255,255,255,.38),0 56px 0 rgba(255,255,255,.24)}}.art-startup{{--sky1:#b9e8d4;--sky2:#6bbf9f;--ground:#174a3a;--sun:#ffe07a;--shape:#fff4d7;--accentArt:#ff6b5f}}.art-science{{--sky1:#8fc9ff;--sky2:#213b8f;--ground:#151a45;--sun:#d8f3ff;--shape:#f8fbff;--accentArt:#7ee3ff}}.art-history{{--sky1:#f1c27d;--sky2:#c66b49;--ground:#5f311d;--sun:#ffe1a6;--shape:#fff2d2;--accentArt:#8b3f2f}}.art-philosophy{{--sky1:#d9c6ff;--sky2:#7862b8;--ground:#37265f;--sun:#fff0a8;--shape:#fff7e8;--accentArt:#9a7cff}}.art-strategy{{--sky1:#cfd6df;--sky2:#73808e;--ground:#27313c;--sun:#f5d38a;--shape:#f7efe0;--accentArt:#d65d4a}}.art-general{{--sky1:#b8d8ff;--sky2:#f1c6a8;--ground:#304a5f;--sun:#ffe3a1;--shape:#fff8ec;--accentArt:#5aa6ff}}
+.copy{{height:45%;padding:17px 20px 20px;display:flex;flex-direction:column;background:#fff8ec;color:#17130f}}.meta{{display:inline-flex;align-self:flex-start;background:#ede4d3;border-radius:999px;padding:6px 9px;font:900 10px/1 system-ui;letter-spacing:.11em;text-transform:uppercase;color:#74695a;margin-bottom:9px}}.copy h2{{font:850 clamp(29px,7.4vw,39px)/.94 Georgia,'Iowan Old Style',serif;letter-spacing:-.025em;margin:0;color:#17130f}}.copy p{{font:500 16px/1.36 Georgia,'Iowan Old Style',serif;color:#3f3a33;margin:10px 0 0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}}
 .action-dock{{height:82px;display:flex;align-items:center;justify-content:center;gap:18px}}.swipe-btn{{display:grid;place-items:center;border-radius:999px;border:0;background:#fff;box-shadow:0 10px 28px rgba(30,38,52,.16);font:950 28px/1 system-ui;cursor:pointer}}.swipe-btn.small{{width:44px;height:44px;font-size:20px;color:#b8a15c}}.swipe-btn.no{{width:62px;height:62px;color:#ff4458}}.swipe-btn.star{{width:52px;height:52px;color:#24a7ff}}.swipe-btn.yes{{width:62px;height:62px;color:#20c76f}}
 .empty{{width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;border:1px dashed #d7d9df;border-radius:22px;display:grid;place-items:center;text-align:center;padding:30px;color:#6e737d;background:#fff}}.empty[hidden]{{display:none}}.empty h2{{font:900 34px/.95 Georgia,serif;margin:0 0 8px;color:#1b1b1f}}
 .chips{{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 9px;-webkit-overflow-scrolling:touch;scrollbar-width:none}}.chips::-webkit-scrollbar{{display:none}}.chips button{{white-space:nowrap;border:1px solid #e0e2e8;background:#fff;color:#535967;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui}}.chips button.active{{background:#111;color:#fff;border-color:#111}}
