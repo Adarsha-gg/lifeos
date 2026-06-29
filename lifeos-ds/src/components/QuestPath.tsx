@@ -14,6 +14,8 @@ export interface QuestStepItem {
   state?: StepState;
   /** XP reward for the step. */
   xp?: number;
+  /** Optional destination; when present the step is clickable. */
+  href?: string;
 }
 
 export interface QuestPathProps {
@@ -46,7 +48,7 @@ export function QuestPath({ steps, className }: QuestPathProps) {
               <span className="lo-qstep__node">{m.icon}</span>
               {i < steps.length - 1 && <span className="lo-qstep__line" />}
             </div>
-            <div className="lo-qstep__body">
+            <a className={`lo-qstep__body ${s.href ? "is-clickable" : ""}`} href={s.href || undefined} aria-disabled={!s.href}>
               <div className="lo-qstep__top">
                 {s.lane && <span className="lo-qstep__lane lo-kicker">{s.lane}</span>}
                 <Pill tone={m.tone} variant="soft">
@@ -58,7 +60,7 @@ export function QuestPath({ steps, className }: QuestPathProps) {
               {typeof s.xp === "number" && (
                 <div className="lo-qstep__xp">+{s.xp} XP</div>
               )}
-            </div>
+            </a>
           </li>
         );
       })}

@@ -41,7 +41,9 @@
   );
 }
 
-.lo-qstep__body { padding-bottom: var(--lo-sp-5); }
+.lo-qstep__body { padding-bottom: var(--lo-sp-5); color: inherit; text-decoration: none; display: block; }
+.lo-qstep__body.is-clickable { cursor: pointer; }
+.lo-qstep__body.is-clickable:hover .lo-qstep__title { color: var(--lo-accent); text-decoration: underline; text-underline-offset: 3px; }
 .lo-qstep__top {
   display: flex;
   align-items: center;

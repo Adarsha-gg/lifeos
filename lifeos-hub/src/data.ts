@@ -143,13 +143,14 @@ export interface QuestStep {
   detail?: string;
   state: "done" | "current" | "ready" | "locked";
   xp: number;
+  href?: string;
 }
 
 export const QUEST_PATH: QuestStep[] = [
-  { lane: "Review", title: "Clear 3 due cards", detail: "Spaced repetition — due today.", state: "current", xp: 80 },
-  { lane: "Ready next", title: "Al-Khwarizmi & Algorithmic Procedure", detail: "Level 2 fit, builds on logic foundations.", state: "ready", xp: 120 },
-  { lane: "Stretch", title: "Gödel & the Limits of Proof", detail: "Unlocks after two more logic lessons.", state: "locked", xp: 200 },
-  { lane: "Explore", title: "Play: Dawn of Civilization", detail: "A training quest for systems leverage.", state: "ready", xp: 60 },
+  { lane: "Review", title: "Clear 3 due cards", detail: "Spaced repetition — due today.", state: "current", xp: 80, href: "/learn/learning-system.html" },
+  { lane: "Ready next", title: "Al-Khwarizmi & Algorithmic Procedure", detail: "Level 2 fit, builds on logic foundations.", state: "ready", xp: 120, href: "/learn/analytical-minds-al-khwarizmi-and-algorithmic-procedure.html" },
+  { lane: "Stretch", title: "Stretch the next proof path", detail: "Open the graph to choose the next locked node to unlock.", state: "locked", xp: 200, href: "/learn/skill-tree.html?mode=global" },
+  { lane: "Explore", title: "Play: Dawn of Civilization", detail: "A training quest for systems leverage.", state: "ready", xp: 60, href: "/learn/game-civilization.html" },
 ];
 
 export interface Game {
