@@ -124,10 +124,10 @@ CSS = """
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f6f4ee;color:#16191c;font-family:Inter,system-ui,-apple-system,sans-serif}
 a{color:inherit}.shell{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:20px 0 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #d7d1c4;padding-bottom:14px;margin-bottom:24px}.top a{text-decoration:none;color:#5d625d;font-weight:850}
 .hero{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start;border-bottom:3px solid #16191c;padding-bottom:24px}.k{font:900 12px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;color:#926b25}.hero h1{font:850 clamp(44px,7vw,78px)/.9 Georgia,serif;letter-spacing:0;margin:8px 0 12px}.hero p{font:500 19px/1.55 Georgia,serif;color:#434a45;margin:0;max-width:760px}.sourcebox{border:1px solid #d7d1c4;background:#fff;padding:12px}.sourcebox strong{display:block;font:900 14px/1.2 system-ui;margin:0 0 5px}.sourcebox p{margin:0 0 8px;color:#4e5650;font:650 13px/1.38 system-ui}.sourcebox a{display:block;color:#315f9d;font:750 11px/1.25 system-ui;margin:0 0 8px;overflow-wrap:anywhere}
-.model{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}.metric{background:#fff;border:1px solid #d7d1c4;padding:14px}.metric span{display:block;color:#6a6b66;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase}.metric b{display:block;font:900 30px/1 system-ui;margin-top:7px}
+.model{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}.metric{background:#fff;border:1px solid #d7d1c4;padding:14px}.metric.wide{grid-column:1/-1}.metric span{display:block;color:#6a6b66;font:800 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase}.metric>b{display:block;font:900 30px/1 system-ui;margin-top:7px}.domainMini{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.domainMini span{display:inline-flex;gap:4px;border:1px solid #e0d9cc;border-radius:999px;padding:7px 9px;color:#3e443f;background:#fbfaf7;font:850 12px/1 system-ui;letter-spacing:0;text-transform:none}.domainMini b{font:900 12px/1 system-ui;color:#16191c}.item.ready{border-left:4px solid #1f9d78;padding-left:10px}.item.almost,.item.stretch{border-left:4px solid #d79d3f;padding-left:10px}.item.review{border-left:4px solid #6d6af2;padding-left:10px}
 .queue{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0 28px}.lane{background:#fff;border:1px solid #d7d1c4;padding:14px;min-height:250px}.lane h2{font:900 22px/1 Georgia,serif;margin:0 0 5px}.lane p{margin:0 0 12px;color:#646a65;font:650 13px/1.4 system-ui}.item{border-top:1px solid #e4dfd4;padding:11px 0}.item:first-of-type{border-top:0}.item strong{display:block;font:850 16px/1.15 system-ui}.item small{display:block;color:#606963;font:650 12px/1.35 system-ui;margin-top:4px}.item .buttons{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}.item a,.item button{border:1px solid #c9c2b5;background:#fff;color:#16191c;text-decoration:none;border-radius:7px;padding:8px 10px;font:850 12px/1 system-ui;cursor:pointer}.item a{background:#16191c;color:#fff}.empty{color:#74746c;font:650 13px/1.4 system-ui;border-top:1px solid #e4dfd4;padding-top:12px}
 .principles{border-top:3px solid #16191c;padding-top:18px;margin-top:26px}.principles h2{font:850 28px/1 Georgia,serif;margin:0 0 12px}.plist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.principle{background:#fff;border:1px solid #d7d1c4;padding:13px}.principle strong{display:block;font:900 16px/1.15 system-ui;margin-bottom:6px}.principle p{margin:0;color:#4d554f;font:600 13px/1.45 system-ui}.ingest{margin-top:28px;border:1px solid #16191c;background:#fff;padding:16px}.ingest h2{font:850 25px/1 Georgia,serif;margin:0 0 8px}.ingest code{font:800 13px/1.4 ui-monospace,Consolas,monospace;color:#315f9d}.ingest p{color:#4d554f;font:600 14px/1.5 system-ui}.foot{margin-top:26px;color:#6b6d66;font:650 13px/1.5 system-ui}
-@media(max-width:860px){.top{justify-content:flex-start}.top a{overflow-wrap:anywhere}.hero,.queue{grid-template-columns:1fr}.model,.plist{grid-template-columns:1fr}.hero h1{font-size:44px}.hero p{font-size:17px;max-width:32ch;overflow-wrap:break-word}.shell{width:min(620px,calc(100% - 28px))}}
+@media(max-width:860px){.top{justify-content:flex-start;margin-bottom:16px}.top a{overflow-wrap:anywhere}.hero,.queue{grid-template-columns:1fr}.hero{border-bottom:0;padding-bottom:8px}.sourcebox{display:none}.model,.plist{grid-template-columns:1fr}.hero h1{font-size:44px}.hero p{font-size:17px;max-width:32ch;overflow-wrap:break-word}.shell{width:min(620px,calc(100% - 28px))}.model{margin:14px 0}.metric>b{font-size:26px}.queue{margin-top:10px}}
 """
 
 
@@ -137,62 +137,40 @@ const ENGINE=__ENGINE__;
 const GRAPH=ENGINE.graph;
 const KEY='lifeos.learning.progress.v1';
 const INTERVALS=[1,3,7,14,30,60,120];
+const PREREQ_RELATIONS=new Set(['prerequisite','practice','application','builds_on','depends_on']);
 const $=s=>document.querySelector(s);
+const allById=new Map(GRAPH.nodes.map(n=>[n.id,n]));
+const domainsById=new Map(GRAPH.domains.map(d=>[d.id,d]));
+const incoming=new Map(),outgoing=new Map(),degree={};
+for(const n of GRAPH.nodes){incoming.set(n.id,[]);outgoing.set(n.id,[]);degree[n.id]=0}
+for(const e of GRAPH.edges){if(!allById.has(e.from)||!allById.has(e.to))continue;incoming.get(e.to).push(e);outgoing.get(e.from).push(e);degree[e.from]=(degree[e.from]||0)+1;degree[e.to]=(degree[e.to]||0)+1}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
-function save(p){localStorage.setItem(KEY,JSON.stringify(p))}
+function save(p){p.done=p.done||{};p.reviews=p.reviews||{};localStorage.setItem(KEY,JSON.stringify(p))}
 function progress(){const p=load();p.done=p.done||{};p.reviews=p.reviews||{};return p}
-function node(id){return GRAPH.nodes.find(n=>n.id===id)}
+function node(id){return allById.get(id)}
+function domain(id){return domainsById.get(id)||{id:'custom',name:'Custom',color:'#58636f'}}
 function doneIds(){return new Set(Object.keys(progress().done||{}))}
-function incoming(id){return GRAPH.edges.filter(e=>e.to===id)}
-function outgoing(id){return GRAPH.edges.filter(e=>e.from===id)}
-function prereqsSatisfied(n, done){
- const prereqs=incoming(n.id).filter(e=>['prerequisite','practice','application'].includes(e.relation));
- return prereqs.length===0 || prereqs.every(e=>done.has(e.from));
-}
-function daysSince(iso){if(!iso)return 999;return (Date.now()-new Date(iso).getTime())/86400000}
-function reviewInfo(id){
- const p=progress(), d=p.done[id]||{}, r=p.reviews[id]||{};
- const stage=+r.stage||0,last=r.at||d.at;
- const dueIn=(INTERVALS[Math.min(stage,INTERVALS.length-1)]||1)-daysSince(last);
- return {stage,last,dueIn,due:dueIn<=0};
-}
-function dueReviews(){
- return [...doneIds()].map(id=>({node:node(id),review:reviewInfo(id)})).filter(x=>x.node&&x.review.due).sort((a,b)=>a.review.dueIn-b.review.dueIn);
-}
-function frontier(){
- const done=doneIds();
- return GRAPH.nodes.filter(n=>!done.has(n.id)&&prereqsSatisfied(n,done)).sort((a,b)=>(a.domain+a.title).localeCompare(b.domain+b.title));
-}
-function interleave(items){
- const seen=new Set(), out=[];
- for(const n of items){if(!seen.has(n.domain)){out.push(n);seen.add(n.domain)}}
- for(const n of items){if(!out.includes(n))out.push(n)}
- return out;
-}
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function hash(s){let h=2166136261;for(let i=0;i<String(s).length;i++){h^=String(s).charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function daysSince(iso){if(!iso)return 999;return Math.max(0,(Date.now()-new Date(iso).getTime())/86400000)}
 function xp(){const p=progress();return Object.values(p.done).reduce((s,n)=>s+(+n.xp||0),0)}
 function level(x){return Math.floor(Math.sqrt(x/110))+1}
-function complete(id){
- const n=node(id);if(!n)return;
- const p=progress();p.done[id]=p.done[id]||{at:new Date().toISOString(),xp:n.xp||80,title:n.title,kind:n.kind,domain:n.domain};
- save(p);render();
-}
-function reviewed(id){
- const n=node(id);if(!n)return;
- const p=progress();p.done[id]=p.done[id]||{at:new Date().toISOString(),xp:n.xp||80,title:n.title,kind:n.kind,domain:n.domain};
- const old=p.reviews[id]||{};p.reviews[id]={at:new Date().toISOString(),stage:(+old.stage||0)+1};
- save(p);render();
-}
-function card(n, mode, extra=''){
- return `<div class="item"><strong>${n.title}</strong><small>${n.domain} / ${n.kind}. ${n.summary||''}${extra}</small><div class="buttons"><a href="${n.url}">${n.kind==='game'?'Play':'Read'}</a>${mode==='review'?`<button data-review="${n.id}">Mark reviewed</button>`:`<button data-complete="${n.id}">Mark learned</button>`}</div></div>`;
-}
+function nodeLevel(n){const raw=String(n.difficulty_level||n.difficulty||'').toLowerCase();if(/intro|beginner|foundation|basic/.test(raw))return 1;if(/intermediate|medium/.test(raw))return 3;if(/advanced|hard|expert/.test(raw))return 5;const xpScore=Math.max(0,(+n.xp||80)-60)/55,graphScore=Math.min(2,((incoming.get(n.id)||[]).length+(outgoing.get(n.id)||[]).length/2)/4);return Math.max(1,Math.min(8,Math.round(1+xpScore+graphScore)))}
+function prereqInfo(n,done){const req=(incoming.get(n.id)||[]).filter(e=>PREREQ_RELATIONS.has(e.relation||'prerequisite')),hit=req.filter(e=>done.has(e.from)),missing=req.filter(e=>!done.has(e.from)).map(e=>node(e.from)?.title).filter(Boolean);return {total:req.length,done:hit.length,ratio:req.length?hit.length/req.length:1,missing}}
+function domainStats(done){const by=new Map(GRAPH.domains.map(d=>[d.id,{...d,xp:0,done:0,total:0,level:1,pct:0}]));for(const n of GRAPH.nodes){const d=by.get(n.domain)||by.get('custom');if(d)d.total++}for(const n of GRAPH.nodes){if(!done.has(n.id))continue;const d=by.get(n.domain)||by.get('custom');if(d){d.done++;d.xp+=+n.xp||80}}for(const d of by.values()){d.level=level(d.xp);d.pct=d.total?d.done/d.total:0}return [...by.values()].sort((a,b)=>b.xp-a.xp||b.done-a.done||a.name.localeCompare(b.name))}
+function reviewInfo(id){const p=progress(),d=p.done[id]||{},r=p.reviews[id]||{},stage=+r.stage||0,last=r.at||d.at,dueIn=(INTERVALS[Math.min(stage,INTERVALS.length-1)]||1)-daysSince(last);return {stage,last,dueIn,due:dueIn<=0}}
+function recommendationFor(n,model){const done=model.done,learned=done.has(n.id),nl=nodeLevel(n),dstat=model.domainById.get(n.domain)||{level:1,pct:0,done:0},pre=prereqInfo(n,done);if(learned){const review=reviewInfo(n.id);if(!review.due)return null;return {node:n,score:10000+Math.abs(review.dueIn)*20+nl,kind:'review',readiness:'review',nodeLevel:nl,domainLevel:dstat.level,reasons:[`Review due · stage ${review.stage}`,`Protect ${domain(n.domain).name} memory`]}}const levelGap=nl-(dstat.level+1),fit=Math.max(0,1-Math.abs(levelGap)/4),frontier=pre.total&&pre.ratio>=1?1:0,weak=dstat.pct<.08?1:0,connected=(incoming.get(n.id)||[]).some(e=>done.has(e.from))||(outgoing.get(n.id)||[]).some(e=>done.has(e.to));let score=120*pre.ratio+70*fit+35*frontier+25*weak+(connected?22:0)+(hash(n.id+new Date().toISOString().slice(0,10))%1000)/1000;if(pre.total&&pre.ratio<.5)score-=60;if(levelGap>3)score-=45;const readiness=pre.total===0?'explore':(pre.ratio>=1&&Math.abs(levelGap)<=1?'ready':(pre.ratio>=.66&&Math.abs(levelGap)<=2?'almost':(levelGap>2?'stretch':'explore')));const reasons=[pre.total?`${pre.done}/${pre.total} prereqs`:'Good starting point',`you L${dstat.level} / item L${nl}`];if(weak)reasons.push(`strengthens ${domain(n.domain).name}`);if(connected)reasons.push('connected to learned graph');return {node:n,score,kind:'learn',readiness,nodeLevel:nl,domainLevel:dstat.level,reasons}}
+function recommendations(limit=18){const done=doneIds(),domains=domainStats(done),model={done,domains,domainById:new Map(domains.map(d=>[d.id,d]))};return GRAPH.nodes.map(n=>recommendationFor(n,model)).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,limit)}
+function complete(id){const n=node(id);if(!n)return;const p=progress();p.done[id]=p.done[id]||{at:new Date().toISOString(),xp:n.xp||80,title:n.title,kind:n.kind,domain:n.domain};save(p);render()}
+function reviewed(id){const n=node(id);if(!n)return;const p=progress();p.done[id]=p.done[id]||{at:new Date().toISOString(),xp:n.xp||80,title:n.title,kind:n.kind,domain:n.domain};const old=p.reviews[id]||{};p.reviews[id]={at:new Date().toISOString(),stage:(+old.stage||0)+1};save(p);render()}
+function card(r){const n=r.node,mode=r.kind==='review'?'review':'learn';return `<div class="item ${esc(r.readiness)}"><strong>${esc(n.title)}</strong><small>${esc(domain(n.domain).name)} · Level ${r.nodeLevel} · ${esc(r.readiness)}<br>${r.reasons.map(esc).join(' · ')}</small><div class="buttons"><a href="${esc(n.url)}">${mode==='review'?'Review':(n.kind==='game'?'Play':'Read')}</a>${mode==='review'?`<button data-review="${esc(n.id)}">Mark reviewed</button>`:`<button data-complete="${esc(n.id)}">Mark learned</button>`}</div></div>`}
 function render(){
- const due=dueReviews(), front=frontier(), mixed=interleave(front).slice(0,6);
- $('[data-xp]').textContent=xp()+' XP';
- $('[data-level]').textContent='Level '+level(xp());
- $('[data-known]').textContent=doneIds().size+' nodes';
- $('.due').innerHTML=due.length?due.slice(0,6).map(x=>card(x.node,'review',` Review stage ${x.review.stage}.`)).join(''):'<div class="empty">No reviews due yet. Learn or play something first.</div>';
- $('.frontier').innerHTML=front.length?front.slice(0,6).map(n=>card(n,'learn')).join(''):'<div class="empty">No new frontier items. Switch to the global graph and add more concepts.</div>';
- $('.mixed').innerHTML=mixed.length?mixed.map(n=>card(n,'learn')).join(''):'<div class="empty">Mixed practice will appear after the global library has reachable nodes.</div>';
+ const done=doneIds(),got=xp(),lvl=level(got),domains=domainStats(done),recs=recommendations(24),due=recs.filter(r=>r.kind==='review'),ready=recs.filter(r=>r.kind==='learn'&&['ready','explore'].includes(r.readiness)),stretch=recs.filter(r=>r.kind==='learn'&&!ready.includes(r));
+ $('[data-xp]').textContent=got+' XP';$('[data-level]').textContent='Level '+lvl;$('[data-known]').textContent=done.size+' nodes';$('[data-assessment]').textContent=`${ready.length} ready next · ${due.length} reviews due`;
+ $('[data-domains]').innerHTML=domains.slice(0,6).map(d=>`<span><b>${esc(d.name)}</b> L${d.level} · ${d.done}/${d.total}</span>`).join('');
+ $('.due').innerHTML=due.length?due.slice(0,6).map(card).join(''):'<div class="empty">No reviews due yet. Learn or play something first.</div>';
+ $('.frontier').innerHTML=ready.length?ready.slice(0,6).map(card).join(''):'<div class="empty">No ready items yet. Try an explore item or switch to the global graph.</div>';
+ $('.mixed').innerHTML=stretch.length?stretch.slice(0,6).map(card).join(''):'<div class="empty">Stretch items appear after the model sees more progress.</div>';
  document.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>complete(b.dataset.complete));
  document.querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>reviewed(b.dataset.review));
 }
@@ -211,9 +189,11 @@ def learning_payload() -> dict[str, Any]:
         "ingestion_contract": INGESTION_CONTRACT,
         "review_intervals_days": [1, 3, 7, 14, 30, 60, 120],
         "selection_policy": {
-            "priority_order": ["due_reviews", "frontier_nodes", "interleaved_practice", "new_roots"],
-            "frontier_rule": "A node is frontier if it is unlearned and all prerequisite/practice/application parents are learned.",
-            "interleaving_rule": "Pick across domains before repeating the same domain.",
+            "priority_order": ["due_reviews", "ready_next", "almost_ready", "stretch_or_explore"],
+            "frontier_rule": "A node is ready if prerequisites are satisfied and its estimated level is near the learner's domain level.",
+            "level_rule": "Learner level is inferred from completed XP overall and per domain; node level comes from difficulty metadata, XP, and graph complexity.",
+            "interleaving_rule": "Boost weak domains and connected graph frontier items before repeating the same domain.",
+            "explainability_rule": "Every recommendation includes short visible reasons: prereqs, level fit, review due, weak domain, or graph connection.",
         },
         "graph": graph,
     }
@@ -236,9 +216,9 @@ def render(payload: dict[str, Any]) -> str:
 <title>LifeOS Learning Engine</title>
 <style>{CSS}</style></head><body><main class='shell'>
 <div class='top'><a href='/learn'>&larr; Field Notes</a><a href='/output/learn/skill-tree.html'>Knowledge Graph</a></div>
-<section class='hero'><div><div class='k'>Math Academy-inspired model</div><h1>Training Queue</h1><p>LifeOS now treats learning as a personal model over a global concept graph: review what is due, advance on the knowledge frontier, and mix practice across domains.</p></div><aside class='sourcebox'>{sources}</aside></section>
-<section class='model'><div class='metric'><span>Personal XP</span><b data-xp>0 XP</b></div><div class='metric'><span>Level</span><b data-level>Level 1</b></div><div class='metric'><span>Known Graph</span><b data-known>0 nodes</b></div></section>
-<section class='queue'><div class='lane'><h2>Due Review</h2><p>Spaced retrieval beats rereading. These come first.</p><div class='due'></div></div><div class='lane'><h2>Frontier</h2><p>New nodes you are ready for from the global graph.</p><div class='frontier'></div></div><div class='lane'><h2>Mixed Practice</h2><p>Interleaved options across domains to avoid fake fluency.</p><div class='mixed'></div></div></section>
+<section class='hero'><div><div class='k'>Adaptive learner model</div><h1>Training Queue</h1><p>LifeOS assesses your current level from the graph, then recommends reviews, ready next lessons, and stretch items with reasons instead of dumping a flat library.</p></div><aside class='sourcebox'>{sources}</aside></section>
+<section class='model'><div class='metric'><span>Personal XP</span><b data-xp>0 XP</b></div><div class='metric'><span>Level</span><b data-level>Level 1</b></div><div class='metric'><span>Known Graph</span><b data-known>0 nodes</b></div><div class='metric wide'><span>Assessment</span><b data-assessment>0 ready next</b><div class='domainMini' data-domains></div></div></section>
+<section class='queue'><div class='lane'><h2>Due Review</h2><p>Spaced retrieval beats rereading. These come first.</p><div class='due'></div></div><div class='lane'><h2>Ready Next</h2><p>Matched to your current domain level and prerequisite graph.</p><div class='frontier'></div></div><div class='lane'><h2>Stretch / Explore</h2><p>Interleaved options to broaden the graph without overloading you.</p><div class='mixed'></div></div></section>
 <section class='principles'><h2>System Rules</h2><div class='plist'>{principles}</div></section>
 <section class='ingest'><h2>Book / Doc Ingestion Contract</h2><p>Long sources get chunked into concepts, typed edges, source pointers, blog lessons, and games. The engine stores summaries and locators, not a pasted book.</p><p>Output schema: <code>output/learn/learning-engine.json</code>. Source contract: <code>ingestion_contract</code>.</p></section>
 <div class='foot'>Generated {payload['generated_at']}. This is the control layer; the graph remains the source of truth.</div>
