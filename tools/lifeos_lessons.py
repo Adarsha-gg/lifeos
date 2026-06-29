@@ -1584,6 +1584,33 @@ def _lesson_categories(lesson: dict[str, Any]) -> list[str]:
     return cats
 
 
+def _image_query_for_lesson(lesson: dict[str, Any], cats: list[str] | None = None) -> str:
+    if lesson.get("hero_article"):
+        return str(lesson["hero_article"])
+    cats = cats or _lesson_categories(lesson)
+    title = str(lesson.get("title") or "")
+    text = f"{title} {' '.join(cats)}".lower()
+    if "paul graham" in text or "startup" in cats:
+        return "Silicon Valley"
+    if "history" in cats or "strategy" in cats:
+        if "napoleon" in text:
+            return "Napoleon"
+        if "caesar" in text or "rome" in text:
+            return "Roman Forum"
+        return "History"
+    if "science" in cats:
+        if "complex" in text:
+            return "Mandelbrot set"
+        if "sound" in text:
+            return "Sound wave"
+        if "tesla" in text:
+            return "Nikola Tesla"
+        return "Science"
+    if "philosophy" in cats:
+        return "The School of Athens"
+    return title or "Library"
+
+
 def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) -> list[dict[str, Any]]:
     catalog: list[dict[str, Any]] = []
     for lesson in library:
@@ -1591,6 +1618,7 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
         if not lesson_id:
             continue
         meta = lesson.get("curriculum") or {}
+        cats = _lesson_categories(lesson)
         catalog.append({
             "id": lesson_id,
             "title": str(lesson.get("title") or lesson_id),
@@ -1598,147 +1626,142 @@ def _recommendation_catalog(library: list[dict[str, Any]], daily_ids: set[str]) 
             "minutes": int(lesson.get("minutes") or 10),
             "emoji": str(lesson.get("emoji") or "•"),
             "accent": str(lesson.get("accent") or "#151719"),
+            "imageQuery": _image_query_for_lesson(lesson, cats),
             "url": f"/output/learn/{lesson_id}.html",
-            "categories": _lesson_categories(lesson),
+            "categories": cats,
             "domain": str(meta.get("domain") or lesson.get("domain") or lesson.get("track") or "general"),
             "daily": lesson_id in daily_ids,
         })
     return catalog
 
 def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], today: date) -> str:
-    """Render /learn as a swipeable, horizontal card deck."""
+    """Render /learn as a Tinder-like photo card deck."""
     day = today.strftime("%A, %B %d").replace(" 0", " ")
     daily_ids = {l["id"] for l in daily}
     rec_catalog = _recommendation_catalog(library, daily_ids)
     rec_data = json.dumps(rec_catalog, separators=(",", ":")).replace("</", "<\\/")
-    fallback_cards = "".join(
-        f"<article class='swipe-card' style='--c:{esc(l.get('accent', '#151719'))}' data-id='{esc(l['id'])}'>"
-        f"<div class='card-k'>{esc(l['emoji'])} {esc(l['minutes'])} min</div>"
-        f"<a class='card-main' href='/output/learn/{esc(l['id'])}.html'><strong>{esc(l['title'])}</strong>"
-        f"<span>{esc(l['subtitle'])}</span></a>"
-        f"<div class='card-actions'><span>← No</span><a href='/output/learn/{esc(l['id'])}.html'>Yes →</a></div></article>"
-        for l in daily[:8]
-    )
+    fallback = []
+    for idx, lesson in enumerate(daily[:3]):
+        cats = _lesson_categories(lesson)
+        fallback.append(
+            f"<article class='deck-card' style='--i:{idx};--c:{esc(lesson.get('accent', '#151719'))}' data-id='{esc(lesson['id'])}' data-url='/output/learn/{esc(lesson['id'])}.html' data-image-query='{esc(_image_query_for_lesson(lesson, cats))}'>"
+            f"<div class='photo'><div class='photo-fallback'>{esc(lesson['emoji'])}</div></div>"
+            f"<div class='copy'><div class='meta'>{esc(lesson['minutes'])} min · {esc(', '.join(cats))}</div>"
+            f"<h2>{esc(lesson['title'])}</h2><p>{esc(lesson['subtitle'])}</p>"
+            f"<div class='actions'><button type='button' data-no>← No</button><button type='button' data-yes>Read →</button></div></div></article>"
+        )
+    fallback_cards = "".join(fallback)
     game_cards = "".join(
-        f"<a class='quick-card' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}' style='--c:{esc(g['accent'])}'>"
-        f"<span>{esc(g['emoji'])}</span><strong>{esc(g['title'])}</strong><em>{esc(g['blurb'])}</em></a>"
+        f"<a class='mini-card' href='{esc(g['url']) if 'url' in g else '/output/learn/'+esc(g['id'])+'.html'}'>"
+        f"<span>{esc(g['emoji'])}</span><strong>{esc(g['title'])}</strong></a>"
         for g in GAME_CATALOG[:8]
-    )
-    track_count = len(track_catalog())
-    unit_count = sum(len(t.get("units", [])) for t in track_catalog())
-    quick_cards = (
-        "<a class='quick-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Knowledge graph</strong><em>Your learned nodes and prerequisites.</em></a>"
-        "<a class='quick-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training queue</strong><em>Review, frontier, mixed practice.</em></a>"
-        f"<a class='quick-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>{track_count} mastery tracks</strong><em>{unit_count} units underneath the deck.</em></a>"
-        + game_cards
     )
     recommendation_js = r"""<script>
 (function(){
 const CATALOG=window.LIFEOS_REC_CATALOG||[];
 const PROGRESS_KEY='lifeos.learning.progress.v1';
-const CAT_KEY='lifeos.deck.category.v1';
-const SKIP_KEY='lifeos.deck.skipped.v1';
-const YES_KEY='lifeos.deck.yes.v1';
-const rail=document.querySelector('[data-card-rail]');
-const note=document.querySelector('[data-deck-note]');
-const buttons=[...document.querySelectorAll('[data-cat]')];
-const reset=document.querySelector('[data-reset-skips]');
-const scrollLeft=document.querySelector('[data-scroll-left]');
-const scrollRight=document.querySelector('[data-scroll-right]');
+const CAT_KEY='lifeos.deck.category.v2';
+const SKIP_KEY='lifeos.deck.skipped.v2';
+const YES_KEY='lifeos.deck.yes.v2';
+const IMG_KEY='lifeos.deck.images.v1';
+const stage=document.querySelector('[data-deck-stage]');
+const chips=[...document.querySelectorAll('[data-cat]')];
+const empty=document.querySelector('[data-empty]');
+let queue=[];
 function load(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}}
 function save(key,value){localStorage.setItem(key,JSON.stringify(value))}
-function loadProgress(){return load(PROGRESS_KEY,{})}
 function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function attr(s){return esc(s).replace(/"/g,'&quot;')}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function doneIds(progress){return new Set(Object.keys(progress.done||{}))}
+function doneIds(){const progress=load(PROGRESS_KEY,{});return new Set(Object.keys(progress.done||{}))}
 function prefs(done){const out={};for(const id of done){const item=CATALOG.find(x=>x.id===id);if(!item)continue;(item.categories||[]).forEach(c=>out[c]=(out[c]||0)+1)}return out}
-function categoryLabel(item){return (item.categories||['general']).join(', ')}
-function card(item){return `<article class="swipe-card" style="--c:${attr(item.accent||'#151719')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}">
-  <div class="card-k"><span>${esc(item.emoji)} ${esc(item.minutes)} min · ${esc(categoryLabel(item))}</span><button type="button" data-no aria-label="No, skip this card">← no</button></div>
-  <a class="card-main" href="${attr(item.url)}"><strong>${esc(item.title)}</strong><span>${esc(item.subtitle||'')}</span></a>
-  <div class="card-actions"><button type="button" data-no>← No</button><button type="button" data-yes>Yes →</button></div>
-</article>`}
 function ranked(cat){
- const progress=loadProgress(),done=doneIds(progress),pref=prefs(done),skipped=load(SKIP_KEY,{}),historyCount=done.size,day=new Date().toISOString().slice(0,10);
+ const done=doneIds(),pref=prefs(done),skipped=load(SKIP_KEY,{}),day=new Date().toISOString().slice(0,10);
  let pool=CATALOG.filter(item=>!done.has(item.id)&&!skipped[item.id]);
  if(cat&&cat!=='all')pool=pool.filter(item=>(item.categories||[]).includes(cat));
- let scored=pool.map(item=>{let s=item.daily?60:0;if(historyCount){for(const c of item.categories||[])s+=(pref[c]||0)*28}else{s+=item.daily?100:0}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
- if(scored.length<12){const seen=new Set(scored.map(x=>x.id));CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,12-scored.length).forEach(item=>scored.push(item))}
- return {items:scored.slice(0,36),historyCount,skippedCount:Object.keys(skipped).length};
+ let scored=pool.map(item=>{let s=item.daily?70:0;if(done.size){for(const c of item.categories||[])s+=(pref[c]||0)*30}else{s+=item.daily?120:0}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
+ if(scored.length<18){const seen=new Set(scored.map(x=>x.id));CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,18-scored.length).forEach(item=>scored.push(item))}
+ return scored;
 }
-function currentCat(){return localStorage.getItem(CAT_KEY)||'all'}
-function render(cat=currentCat()){
- if(!rail)return;
- const r=ranked(cat);
- if(note)note.textContent=r.historyCount?`Right = yes/read. Left = no/skip. Ranked from ${r.historyCount} completed read${r.historyCount===1?'':'s'}${r.skippedCount?`, ${r.skippedCount} skipped`:''}.`:`Right = yes/read. Left = no/skip. No history yet, so today’s cards are first.`;
- rail.innerHTML=r.items.length?r.items.map(card).join(''):`<div class="empty-card"><strong>No cards left here.</strong><span>Reset skipped cards or choose another category.</span></div>`;
- attachCards();
+function card(item,i){const cats=(item.categories||['general']).join(', ');return `<article class="deck-card" style="--i:${i};--c:${attr(item.accent||'#111')}" data-id="${attr(item.id)}" data-url="${attr(item.url)}" data-image-query="${attr(item.imageQuery||item.title)}">
+ <div class="photo"><div class="photo-fallback">${esc(item.emoji||'📚')}</div></div>
+ <div class="copy"><div class="meta">${esc(item.minutes)} min · ${esc(cats)}</div><h2>${esc(item.title)}</h2><p>${esc(item.subtitle||'')}</p><div class="actions"><button type="button" data-no>← No</button><button type="button" data-yes>Read →</button></div></div>
+</article>`}
+async function imageFor(query){
+ if(!query)return null;
+ const cache=load(IMG_KEY,{}); if(cache[query])return cache[query];
+ try{
+  const u='https://en.wikipedia.org/w/api.php?origin=*&action=query&prop=pageimages&piprop=thumbnail&pithumbsize=900&format=json&redirects=1&titles='+encodeURIComponent(query);
+  const data=await fetch(u).then(r=>r.json());
+  const pages=(data.query&&data.query.pages)||{}; const page=Object.values(pages)[0]||{}; const src=page.thumbnail&&page.thumbnail.source;
+  if(src){cache[query]=src;save(IMG_KEY,cache);return src;}
+ }catch(e){}
+ return null;
 }
-function setCat(cat){localStorage.setItem(CAT_KEY,cat);buttons.forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));render(cat)}
-function skip(card){const skipped=load(SKIP_KEY,{});skipped[card.dataset.id]={at:new Date().toISOString()};save(SKIP_KEY,skipped);card.classList.add('gone-left');setTimeout(()=>render(),180)}
-function yes(card){const yeses=load(YES_KEY,{});yeses[card.dataset.id]={at:new Date().toISOString()};save(YES_KEY,yeses);card.classList.add('gone-right');setTimeout(()=>{location.href=card.dataset.url},120)}
-function attachCards(){
- [...rail.querySelectorAll('.swipe-card')].forEach(card=>{
-  card.querySelectorAll('[data-no]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();skip(card)}));
-  card.querySelectorAll('[data-yes]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();yes(card)}));
-  let sx=0,sy=0,dx=0,drag=false,down=false;
-  card.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;down=true;drag=false;sx=e.clientX;sy=e.clientY;dx=0;card.setPointerCapture?.(e.pointerId)});
-  card.addEventListener('pointermove',e=>{if(!down)return;dx=e.clientX-sx;const dy=e.clientY-sy;if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)){drag=true;card.dataset.dragged='1';card.style.transform=`translateX(${dx}px) rotate(${dx/22}deg)`;card.style.opacity=String(Math.max(.45,1-Math.abs(dx)/420));e.preventDefault()}});
-  function end(e){if(!down)return;down=false;if(drag&&dx>90){e.preventDefault();yes(card);return}if(drag&&dx<-90){e.preventDefault();skip(card);return}card.style.transform='';card.style.opacity='';setTimeout(()=>{delete card.dataset.dragged},0)}
-  card.addEventListener('pointerup',end);card.addEventListener('pointercancel',end);
-  card.querySelector('.card-main')?.addEventListener('click',e=>{if(card.dataset.dragged==='1'){e.preventDefault();delete card.dataset.dragged}});
+function hydrateImages(root=document){
+ root.querySelectorAll('.deck-card').forEach(async card=>{
+  const photo=card.querySelector('.photo'); if(!photo||photo.dataset.loaded)return;
+  const src=await imageFor(card.dataset.imageQuery||'');
+  if(src){photo.style.backgroundImage=`linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.34)),url("${src}")`;photo.classList.add('loaded');photo.dataset.loaded='1';}
  });
 }
-buttons.forEach(b=>b.addEventListener('click',()=>setCat(b.dataset.cat)));
-reset?.addEventListener('click',()=>{localStorage.removeItem(SKIP_KEY);render()});
-scrollLeft?.addEventListener('click',()=>rail?.scrollBy({left:-Math.min(420,innerWidth*.82),behavior:'smooth'}));
-scrollRight?.addEventListener('click',()=>rail?.scrollBy({left:Math.min(420,innerWidth*.82),behavior:'smooth'}));
-setCat(currentCat());
+function renderStack(){
+ if(!stage)return;
+ const visible=queue.slice(0,3);
+ stage.innerHTML=visible.map(card).join('');
+ empty.hidden=visible.length>0;
+ attach(stage); hydrateImages(stage);
+}
+function setCat(cat){localStorage.setItem(CAT_KEY,cat);chips.forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));queue=ranked(cat);renderStack()}
+function topCard(){return stage&&stage.querySelector('.deck-card')}
+function advance(card,dir){
+ if(!card)return;
+ const id=card.dataset.id;
+ if(dir<0){const skipped=load(SKIP_KEY,{});skipped[id]={at:new Date().toISOString()};save(SKIP_KEY,skipped);card.classList.add('exit-left')}
+ else{const yes=load(YES_KEY,{});yes[id]={at:new Date().toISOString()};save(YES_KEY,yes);card.classList.add('exit-right')}
+ setTimeout(()=>{const next=queue.shift(); if(dir>0&&card.dataset.url){location.href=card.dataset.url;return} renderStack();},360);
+}
+function attach(root){
+ root.querySelectorAll('[data-no]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();advance(b.closest('.deck-card'),-1)}));
+ root.querySelectorAll('[data-yes]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();advance(b.closest('.deck-card'),1)}));
+ root.querySelectorAll('.deck-card').forEach(card=>{
+  let sx=0,sy=0,dx=0,dy=0,down=false,drag=false;
+  card.addEventListener('pointerdown',e=>{if(e.target.closest('button,a'))return;down=true;drag=false;sx=e.clientX;sy=e.clientY;card.setPointerCapture?.(e.pointerId)});
+  card.addEventListener('pointermove',e=>{if(!down)return;dx=e.clientX-sx;dy=e.clientY-sy;if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy)){drag=true;const rot=dx/18;card.style.transition='none';card.style.transform=`translate3d(${dx}px,${Math.abs(dx)*-.04}px,0) rotate(${rot}deg)`;card.style.opacity=String(Math.max(.35,1-Math.abs(dx)/360));e.preventDefault();}});
+  function end(e){if(!down)return;down=false;card.style.transition='';if(drag&&dx>88){advance(card,1);return}if(drag&&dx<-88){advance(card,-1);return}card.style.transform='';card.style.opacity='';}
+  card.addEventListener('pointerup',end);card.addEventListener('pointercancel',end);
+ });
+}
+chips.forEach(c=>c.addEventListener('click',()=>setCat(c.dataset.cat)));
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')advance(topCard(),-1);if(e.key==='ArrowRight')advance(topCard(),1)});
+setCat(localStorage.getItem(CAT_KEY)||'all');
 })();
 </script>"""
     return f"""<!doctype html><html lang='en'><head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>
 <meta name='color-scheme' content='light'>
-<title>LifeOS Learning Deck</title>
+<title>LifeOS Deck</title>
 <style>
-*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#f7f5f0;color:#151719;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}a{{color:inherit}}
-.wrap{{width:min(1040px,calc(100% - 28px));margin:0 auto;padding:16px 0 44px}}
-.topbar{{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #d8d3c8;padding:0 0 12px;margin-bottom:22px;color:#5f665f;font:850 13px/1 system-ui;flex-wrap:wrap}}.topbar a{{text-decoration:none;color:#5f665f}}
-.hero{{padding:8px 0 18px;border-bottom:3px solid #151719;margin-bottom:18px}}.kicker{{font:900 12px/1 system-ui;letter-spacing:.15em;text-transform:uppercase;color:#776b4f;margin-bottom:8px}}.hero h1{{font:900 clamp(42px,10vw,88px)/.86 Georgia,serif;margin:0;color:#151719}}.hero p{{font:600 18px/1.45 system-ui;color:#4e5651;max-width:680px;margin:12px 0 0}}
-.deck{{margin:18px 0 26px}}.deck-head{{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}}.deck-head h2{{font:900 28px/1 Georgia,serif;margin:0}}.deck-head p{{font:650 14px/1.4 system-ui;color:#636b66;margin:6px 0 0;max-width:620px}}.deck-tools{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}.deck-tools button,.catbar button{{border:1px solid #d8d3c8;background:#fff;color:#151719;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui;cursor:pointer}}.deck-tools button{{min-width:42px}}.catbar{{display:flex;gap:7px;overflow-x:auto;padding:14px 0 8px;-webkit-overflow-scrolling:touch}}.catbar button{{white-space:nowrap}}.catbar button.active{{background:#151719;color:#fff;border-color:#151719}}
-.swipe-hint{{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;color:#77736a;font:900 12px/1 system-ui;text-transform:uppercase;letter-spacing:.1em;margin:8px 0 10px}}.swipe-hint span:nth-child(2){{text-align:center;color:#5d645f}}.swipe-hint span:last-child{{text-align:right}}
-.card-rail{{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 2px 18px;margin:0 -2px;-webkit-overflow-scrolling:touch}}.card-rail::-webkit-scrollbar{{height:9px}}.card-rail::-webkit-scrollbar-thumb{{background:#d2ccc0;border-radius:999px}}
-.swipe-card{{position:relative;scroll-snap-align:center;flex:0 0 min(82vw,360px);min-height:430px;background:#fff;border:1px solid #d8d3c8;border-top:9px solid var(--c,#151719);border-radius:24px;padding:18px;box-shadow:0 18px 44px rgba(30,26,16,.12);display:flex;flex-direction:column;transition:transform .18s ease,opacity .18s ease;touch-action:pan-y}}.swipe-card.gone-left{{transform:translateX(-130%) rotate(-12deg)!important;opacity:0!important}}.swipe-card.gone-right{{transform:translateX(130%) rotate(12deg)!important;opacity:0!important}}
-.card-k{{display:flex;justify-content:space-between;gap:10px;align-items:center;font:900 11px/1.2 system-ui;letter-spacing:.1em;text-transform:uppercase;color:#77736a}}.card-k button{{border:0;background:#f0ede5;color:#5f665f;border-radius:999px;padding:8px 10px;font:900 11px/1 system-ui}}
-.card-main{{display:flex;flex-direction:column;text-decoration:none;color:#151719;gap:12px;flex:1;padding:22px 0}}.card-main strong{{font:900 clamp(31px,8vw,48px)/.93 Georgia,serif;letter-spacing:-.02em}}.card-main span{{font:600 17px/1.5 system-ui;color:#59605c}}
-.card-actions{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}}.card-actions button,.card-actions a{{display:grid;place-items:center;text-decoration:none;border-radius:16px;padding:15px 12px;font:950 15px/1 system-ui;border:1px solid #d8d3c8;background:#f6f3ec;color:#151719;cursor:pointer}}.card-actions [data-yes],.card-actions a:last-child{{background:#151719;color:#fff;border-color:#151719}}.empty-card{{flex:0 0 min(82vw,360px);border:1px dashed #c9c2b5;border-radius:24px;background:#fff;padding:28px;font:700 16px/1.4 system-ui;color:#5f665f}}.empty-card strong{{display:block;color:#151719;font:900 28px/1 Georgia,serif;margin-bottom:8px}}
-.quick{{border-top:1px solid #151719;margin-top:24px;padding-top:18px}}.quick h2{{font:900 24px/1 Georgia,serif;margin:0 0 12px}}.quick-rail{{display:flex;gap:12px;overflow-x:auto;padding-bottom:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}}.quick-card{{scroll-snap-align:start;flex:0 0 min(76vw,270px);text-decoration:none;color:#151719;background:#fff;border:1px solid #d8d3c8;border-radius:18px;padding:15px;min-height:170px}}.quick-card span{{font-size:31px}}.quick-card strong{{display:block;font:900 21px/1.05 system-ui;margin:12px 0 6px}}.quick-card em{{display:block;color:#5f665f;font:650 13px/1.4 system-ui;font-style:normal}}
-.levelbox{{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d8d3c8;background:#fff;padding:14px;margin:20px 0;border-radius:16px}}.levelbox b{{display:block;font:900 19px/1 system-ui}}.levelbox span{{display:block;color:#65665f;font:700 12px/1.35 system-ui;margin-top:5px}}.levelbar{{width:170px;height:10px;background:#e0ddd3;border-radius:999px;overflow:hidden}}.levelbar i{{display:block;width:0;height:100%;background:#151719}}.foot{{border-top:1px solid #d8d3c8;color:#676b66;margin-top:26px;padding-top:16px;font:650 13px/1.45 system-ui}}
-@media(max-width:760px){{.wrap{{width:calc(100% - 24px)}}.topbar{{justify-content:flex-start}}.hero h1{{font-size:42px;line-height:.9;overflow-wrap:break-word}}.hero p{{font-size:16px}}.deck-head{{align-items:flex-start}}.swipe-card{{flex-basis:86vw;min-height:410px}}.card-main strong{{font-size:36px}}.levelbox{{align-items:flex-start;flex-direction:column}}.levelbar{{width:100%}}}}
-</style></head><body><div class='wrap'>
-<div class='topbar'><span>LifeOS Learning Deck</span><a href='/output/learn/skill-tree.html'>Graph</a><a href='/output/learn/learning-system.html'>Training</a></div>
-<header class='hero'><div class='kicker'>{esc(day)} · mobile first</div><h1>Swipe the deck</h1><p>No dashboard. Scroll cards sideways. Right is yes/read; left is no/skip. Category chips steer the next cards.</p></header>
-<section class='deck'><div class='deck-head'><div><h2>Recommended cards</h2><p data-deck-note>Right = yes/read. Left = no/skip.</p></div><div class='deck-tools'><button type='button' data-scroll-left>←</button><button type='button' data-scroll-right>→</button><button type='button' data-reset-skips>Reset skipped</button></div></div>
-<div class='catbar' data-catbar><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></div>
-<div class='swipe-hint'><span>← No</span><span>horizontal cards</span><span>Yes →</span></div><div class='card-rail' data-card-rail>{fallback_cards}</div></section>
-<div class='levelbox'><div><b data-level-label>Level 1</b><span data-xp-label>0 XP earned in this browser</span></div><div class='levelbar'><i data-xp-bar></i></div></div>
-<section class='quick'><h2>More cards</h2><div class='quick-rail'>{quick_cards}</div></section>
-<div class='foot'>A fresh learning deck is generated every morning by LifeOS. Public pages link sources and add original companion material; private full texts stay local.</div>
-</div><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}<script>
-(function(){{
-const KEY='lifeos.learning.progress.v1';
-function load(){{try{{return JSON.parse(localStorage.getItem(KEY)||'{{}}')}}catch{{return {{}}}}}}
-function xp(p){{return Object.values(p.done||{{}}).reduce((s,n)=>s+(+n.xp||0),0)}}
-function level(x){{return Math.floor(Math.sqrt(x/110))+1}}
-function next(l){{return l*l*110}}
-const total=xp(load()),lvl=level(total),prev=next(lvl-1),goal=next(lvl),pct=Math.max(0,Math.min(100,((total-prev)/(goal-prev))*100));
-document.querySelector('[data-level-label]').textContent='Level '+lvl;
-document.querySelector('[data-xp-label]').textContent=total+' XP earned in this browser';
-document.querySelector('[data-xp-bar]').style.width=pct+'%';
-}})();
-</script></body></html>"""
+*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#111;color:#f8f4ea;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}body{{display:grid;place-items:start center}}a{{color:inherit}}
+.app{{width:min(430px,100vw);min-height:100svh;padding:10px 12px 18px;background:radial-gradient(circle at 50% 0,#3a3328 0,#161411 46%,#0c0b09 100%)}}
+.stage{{position:relative;height:min(78svh,690px);min-height:610px;margin:0 auto;perspective:1400px}}
+.deck-card{{position:absolute;inset:0;background:#f8f4ea;color:#161411;border-radius:32px;overflow:hidden;box-shadow:0 28px 90px rgba(0,0,0,.48);transform:translate3d(0,calc(var(--i)*13px),0) scale(calc(1 - var(--i)*.045));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.13);transition:transform 520ms cubic-bezier(.18,.9,.18,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y}}
+.deck-card.exit-left{{transform:translate3d(-124%,20px,0) rotate(-18deg)!important;opacity:0!important}}.deck-card.exit-right{{transform:translate3d(124%,20px,0) rotate(18deg)!important;opacity:0!important}}
+.photo{{height:60%;background:linear-gradient(135deg,var(--c),#111);background-size:cover;background-position:center;display:grid;place-items:center;position:relative}}.photo:after{{content:'';position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.42))}}.photo-fallback{{font-size:92px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}}.photo.loaded .photo-fallback{{display:none}}
+.copy{{height:40%;padding:18px 20px 18px;display:flex;flex-direction:column;background:#f8f4ea}}.meta{{font:900 11px/1 system-ui;letter-spacing:.13em;text-transform:uppercase;color:#847b6d;margin-bottom:8px}}.copy h2{{font:950 clamp(32px,9vw,46px)/.9 Georgia,serif;letter-spacing:-.035em;margin:0;color:#111}}.copy p{{font:700 15.5px/1.38 system-ui;color:#5b5a54;margin:10px 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
+.actions{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}}.actions button{{border:0;border-radius:999px;padding:15px 12px;font:950 15px/1 system-ui;cursor:pointer;box-shadow:inset 0 0 0 1px #ded6c8;background:#efe9dc;color:#17130f}}.actions [data-yes]{{background:#111;color:#fff;box-shadow:none}}
+.empty{{height:min(78svh,690px);min-height:610px;border:1px dashed rgba(255,255,255,.25);border-radius:32px;display:grid;place-items:center;text-align:center;padding:30px;color:#d9d0c0}}.empty h2{{font:900 34px/.95 Georgia,serif;margin:0 0 8px}}
+.chips{{display:flex;gap:8px;overflow-x:auto;padding:14px 2px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}}.chips::-webkit-scrollbar{{display:none}}.chips button{{white-space:nowrap;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#f8f4ea;border-radius:999px;padding:10px 13px;font:900 12px/1 system-ui;backdrop-filter:blur(10px)}}.chips button.active{{background:#f8f4ea;color:#111;border-color:#f8f4ea}}
+.hint{{display:flex;justify-content:space-between;color:#beb4a4;font:900 11px/1 system-ui;text-transform:uppercase;letter-spacing:.12em;padding:0 6px 8px}}.mini{{margin-top:8px;border-top:1px solid rgba(255,255,255,.14);padding-top:13px}}.mini h2{{font:900 17px/1 system-ui;margin:0 0 10px;color:#f8f4ea}}.mini-rail{{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}}.mini-card{{flex:0 0 148px;min-height:118px;scroll-snap-align:start;text-decoration:none;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:12px;color:#f8f4ea}}.mini-card span{{font-size:24px}}.mini-card strong{{display:block;font:900 15px/1.08 system-ui;margin-top:10px}}
+@media(max-height:780px){{.stage,.empty{{height:76svh;min-height:560px}}.copy h2{{font-size:34px}}.copy p{{font-size:14px;-webkit-line-clamp:2}}.photo-fallback{{font-size:76px}}}}
+@media(prefers-reduced-motion:reduce){{.deck-card{{transition:none}}}}
+</style></head><body><main class='app'>
+<section class='stage' data-deck-stage>{fallback_cards}</section><section class='empty' data-empty hidden><div><h2>No cards left.</h2><p>Pick another lane or come back tomorrow.</p></div></section>
+<div class='hint'><span>← no</span><span>{esc(day)}</span><span>read →</span></div>
+<nav class='chips' aria-label='Categories'><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></nav>
+<section class='mini'><h2>More</h2><div class='mini-rail'><a class='mini-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Graph</strong></a><a class='mini-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training</strong></a><a class='mini-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>Curriculum</strong></a>{game_cards}</div></section>
+</main><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}</body></html>"""
 
 
 def build(today: date | None = None) -> dict[str, Any]:
