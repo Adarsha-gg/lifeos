@@ -141,3 +141,26 @@ Keep this deterministic and local-only. Do not add a backend for this phase.
 ## Expansion: Fable-like card art implementation
 
 Use CSS-only deterministic art in `tools/lifeos_lessons.py` for `/learn` cards. Keep markup small and avoid external image dependencies. Category classes (`art-startup`, `art-science`, etc.) supply color/mood variables and object tweaks. Validate the generated page still parses and visually smoke-test with Playwright.
+
+## Expansion: profile persistence implementation
+
+Implement a static `profile.html` generated into `output/learn/`. It reads/writes known LifeOS localStorage keys and creates a portable JSON bundle. Also write `sync-config.js` from public env vars:
+
+- `LIFEOS_SUPABASE_URL`
+- `LIFEOS_SUPABASE_ANON_KEY`
+
+When those env vars are missing, the page remains fully usable for local profile metadata, export/import files, and copy/paste sync codes. When present, client JS may load Supabase from CDN, send a magic login link, and upsert/fetch a single `lifeos_progress` row per authenticated user.
+
+Expected Supabase table shape for later configuration:
+
+```sql
+create table if not exists public.lifeos_progress (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.lifeos_progress enable row level security;
+create policy "own progress select" on public.lifeos_progress for select using (auth.uid() = user_id);
+create policy "own progress upsert" on public.lifeos_progress for insert with check (auth.uid() = user_id);
+create policy "own progress update" on public.lifeos_progress for update using (auth.uid() = user_id);
+```

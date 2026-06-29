@@ -22,3 +22,6 @@ User expanded the adaptive system: every level-up should feel game-like, with na
 
 ### 2026-06-29 01:08:35
 User asked for the Tinder deck picture area to become much more Fable-like/storybook while keeping the clean bottom controls. Implementing deterministic CSS art as a separate PR.
+
+### 2026-06-29 01:13:57
+User asked for login/persistence so a learner's tree memory survives, with a teacher-friendly path. Implementing a local-first profile/memory page plus optional Supabase cloud sync config as a separate PR.

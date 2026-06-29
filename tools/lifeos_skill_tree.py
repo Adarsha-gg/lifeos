@@ -311,7 +311,7 @@ def render() -> str:
 <title>LifeOS Personal Knowledge Graph</title>
 <style>{CSS}</style></head>
 <body><main class='shell'>
-<div class='top'><a href='/learn'>&larr; Field Notes</a><a href='/output/learn/learning-system.html'>Training Queue</a><a href='/m'>Control &rarr;</a></div>
+<div class='top'><a href='/learn'>&larr; Field Notes</a><a href='/output/learn/learning-system.html'>Training Queue</a><a href='/output/learn/profile.html'>Profile</a><a href='/m'>Control &rarr;</a></div>
 <section class='title'><h1>Knowledge Graph</h1><p>Your learning atlas: every lesson is a constellation, and only the nodes you actually learn become part of your personal map.</p></section>
 <section class='profile'><div><div class='lvl'>Level 1</div><div class='xp'>0 XP</div><div class='bar'><i></i></div></div><div class='actions'><button data-mode='personal' class='active'>Personal graph</button><button data-mode='global'>Global library</button><button class='ghost reset'>Reset</button></div><div class='assessment' data-assessment></div></section>
 <div class='legend'>{chips}</div>
