@@ -1672,15 +1672,12 @@ def render_index(daily: list[dict[str, Any]], library: list[dict[str, Any]], tod
 (function(){
 const CATALOG=window.LIFEOS_REC_CATALOG||[];
 const PROGRESS_KEY='lifeos.learning.progress.v1';
-const CAT_KEY='lifeos.deck.category.v2';
 const SKIP_KEY='lifeos.deck.skipped.v2';
 const YES_KEY='lifeos.deck.yes.v2';
 const stage=document.querySelector('[data-deck-stage]');
-const chips=[...document.querySelectorAll('[data-cat]')];
 const empty=document.querySelector('[data-empty]');
 const globalNo=document.querySelector('[data-global-no]');
 const globalYes=document.querySelector('[data-global-yes]');
-const globalStar=document.querySelector('[data-global-star]');
 let queue=[];
 function load(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}}
 function save(key,value){localStorage.setItem(key,JSON.stringify(value))}
@@ -1708,7 +1705,7 @@ function renderStack(){
  empty.hidden=visible.length>0;
  attach(stage);
 }
-function setCat(cat){localStorage.setItem(CAT_KEY,cat);chips.forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));queue=ranked(cat);renderStack()}
+function setCat(cat){queue=ranked(cat);renderStack()}
 function topCard(){return stage&&stage.querySelector('.deck-card')}
 function advance(card,dir){
  if(!card)return;
@@ -1726,12 +1723,10 @@ function attach(root){
   card.addEventListener('pointerup',end);card.addEventListener('pointercancel',end);
  });
 }
-chips.forEach(c=>c.addEventListener('click',()=>setCat(c.dataset.cat)));
 globalNo?.addEventListener('click',()=>advance(topCard(),-1));
 globalYes?.addEventListener('click',()=>advance(topCard(),1));
-globalStar?.addEventListener('click',()=>advance(topCard(),1));
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')advance(topCard(),-1);if(e.key==='ArrowRight')advance(topCard(),1)});
-setCat(localStorage.getItem(CAT_KEY)||'all');
+setCat('all');
 })();
 </script>"""
     return f"""<!doctype html><html lang='en'><head>
@@ -1748,17 +1743,15 @@ setCat(localStorage.getItem(CAT_KEY)||'all');
 .deck-card.exit-left{{transform:translate3d(-124%,20px,0) rotate(-18deg)!important;opacity:0!important}}.deck-card.exit-right{{transform:translate3d(124%,20px,0) rotate(18deg)!important;opacity:0!important}}
 .photo{{height:55%;position:relative;overflow:hidden;background:#8fc9e8;display:block;flex:none}}.photo:before{{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--sky1,#8fc9e8),var(--sky2,#f7c98b));opacity:.95}}.photo:after{{content:'';position:absolute;left:-8%;right:-8%;bottom:-18%;height:45%;border-radius:50% 50% 0 0;background:var(--ground,#224c3d);box-shadow:0 -26px 0 -12px rgba(255,255,255,.22)}}.photo i,.photo b,.photo em,.photo span{{position:absolute;display:block;z-index:2}}.photo i{{width:112px;height:112px;border-radius:999px;background:var(--sun,#ffd166);right:11%;top:13%;box-shadow:0 14px 40px rgba(0,0,0,.12)}}.photo b{{width:128px;height:86px;left:15%;bottom:21%;background:var(--shape,#fff8ec);border-radius:18px 18px 8px 8px;transform:rotate(-7deg);box-shadow:34px 18px 0 -12px rgba(255,255,255,.55)}}.photo em{{width:88px;height:88px;right:16%;bottom:20%;background:var(--accentArt,#ff6b5f);border-radius:22px;transform:rotate(18deg);opacity:.92}}.photo span{{width:180px;height:2px;left:18%;top:48%;background:rgba(255,255,255,.65);transform:rotate(-16deg);box-shadow:0 28px 0 rgba(255,255,255,.38),0 56px 0 rgba(255,255,255,.24)}}.art-startup{{--sky1:#b9e8d4;--sky2:#6bbf9f;--ground:#174a3a;--sun:#ffe07a;--shape:#fff4d7;--accentArt:#ff6b5f}}.art-science{{--sky1:#8fc9ff;--sky2:#213b8f;--ground:#151a45;--sun:#d8f3ff;--shape:#f8fbff;--accentArt:#7ee3ff}}.art-history{{--sky1:#f1c27d;--sky2:#c66b49;--ground:#5f311d;--sun:#ffe1a6;--shape:#fff2d2;--accentArt:#8b3f2f}}.art-philosophy{{--sky1:#d9c6ff;--sky2:#7862b8;--ground:#37265f;--sun:#fff0a8;--shape:#fff7e8;--accentArt:#9a7cff}}.art-strategy{{--sky1:#cfd6df;--sky2:#73808e;--ground:#27313c;--sun:#f5d38a;--shape:#f7efe0;--accentArt:#d65d4a}}.art-general{{--sky1:#b8d8ff;--sky2:#f1c6a8;--ground:#304a5f;--sun:#ffe3a1;--shape:#fff8ec;--accentArt:#5aa6ff}}
 .copy{{height:45%;padding:17px 20px 20px;display:flex;flex-direction:column;background:#fff8ec;color:#17130f}}.meta{{display:inline-flex;align-self:flex-start;background:#ede4d3;border-radius:999px;padding:6px 9px;font:900 10px/1 system-ui;letter-spacing:.11em;text-transform:uppercase;color:#74695a;margin-bottom:9px}}.copy h2{{font:850 clamp(29px,7.4vw,39px)/.94 Georgia,'Iowan Old Style',serif;letter-spacing:-.025em;margin:0;color:#17130f}}.copy p{{font:500 16px/1.36 Georgia,'Iowan Old Style',serif;color:#3f3a33;margin:10px 0 0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}}
-.action-dock{{height:82px;display:flex;align-items:center;justify-content:center;gap:18px}}.swipe-btn{{display:grid;place-items:center;border-radius:999px;border:0;background:#fff;box-shadow:0 10px 28px rgba(30,38,52,.16);font:950 28px/1 system-ui;cursor:pointer}}.swipe-btn.small{{width:44px;height:44px;font-size:20px;color:#b8a15c}}.swipe-btn.no{{width:62px;height:62px;color:#ff4458}}.swipe-btn.star{{width:52px;height:52px;color:#24a7ff}}.swipe-btn.yes{{width:62px;height:62px;color:#20c76f}}
+.action-dock{{height:72px;display:flex;align-items:center;justify-content:center;gap:14px}}.swipe-btn{{display:grid;place-items:center;border-radius:999px;border:0;background:#fff;box-shadow:0 10px 28px rgba(30,38,52,.16);font:950 15px/1 system-ui;cursor:pointer;height:52px;padding:0 28px}}.swipe-btn.no{{color:#ff4458;box-shadow:inset 0 0 0 1px #f0d8dc,0 10px 28px rgba(30,38,52,.13)}}.swipe-btn.yes{{background:#17130f;color:#fff}}
 .empty{{width:min(386px,calc(100vw - 24px));height:clamp(500px,68svh,620px);margin:0 auto;border:1px dashed #d7d9df;border-radius:22px;display:grid;place-items:center;text-align:center;padding:30px;color:#6e737d;background:#fff}}.empty[hidden]{{display:none}}.empty h2{{font:900 34px/.95 Georgia,serif;margin:0 0 8px;color:#1b1b1f}}
-.chips{{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 9px;-webkit-overflow-scrolling:touch;scrollbar-width:none}}.chips::-webkit-scrollbar{{display:none}}.chips button{{white-space:nowrap;border:1px solid #e0e2e8;background:#fff;color:#535967;border-radius:999px;padding:9px 12px;font:900 12px/1 system-ui}}.chips button.active{{background:#111;color:#fff;border-color:#111}}
 .hint{{display:none}}.mini{{margin-top:4px;border-top:1px solid #e5e7ec;padding-top:11px}}.mini h2{{font:900 17px/1 system-ui;margin:0 0 10px;color:#1b1b1f}}.mini-rail{{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}}.mini-card{{flex:0 0 136px;min-height:104px;scroll-snap-align:start;text-decoration:none;background:#fff;border:1px solid #e3e5eb;border-radius:20px;padding:12px;color:#1b1b1f;box-shadow:0 8px 22px rgba(21,28,40,.06)}}.mini-card span{{font-size:22px}}.mini-card strong{{display:block;font:900 14px/1.08 system-ui;margin-top:10px}}
-@media(max-height:780px){{.tinderbar{{height:48px}}.stage,.empty{{height:clamp(455px,65svh,535px)}}.action-dock{{height:72px}}.copy h2{{font-size:30px}}.copy p{{font-size:14.5px;-webkit-line-clamp:3}}}}
+@media(max-height:780px){{.tinderbar{{height:48px}}.stage,.empty{{height:clamp(455px,65svh,535px)}}.action-dock{{height:64px}}.copy h2{{font-size:30px}}.copy p{{font-size:14.5px;-webkit-line-clamp:3}}}}
 @media(prefers-reduced-motion:reduce){{.deck-card{{transition:none}}}}
 </style></head><body><main class='app'>
 <header class='tinderbar'><button type='button' aria-label='Profile'>👤</button><div class='brand'>LifeOS</div><button type='button' aria-label='Settings'>⚙</button></header>
 <section class='stage' data-deck-stage>{fallback_cards}</section><section class='empty' data-empty hidden><div><h2>No cards left.</h2><p>Pick another lane or come back tomorrow.</p></div></section>
-<div class='action-dock' aria-label='Swipe actions'><button class='swipe-btn small' type='button' aria-label='Back'>↺</button><button class='swipe-btn no' type='button' data-global-no aria-label='No'>×</button><button class='swipe-btn star' type='button' data-global-star aria-label='Deep read'>★</button><button class='swipe-btn yes' type='button' data-global-yes aria-label='Read'>♥</button></div>
-<nav class='chips' aria-label='Categories'><button class='active' data-cat='all'>All</button><button data-cat='history'>History</button><button data-cat='philosophy'>Philosophy</button><button data-cat='science'>Science</button><button data-cat='startup'>Startup</button><button data-cat='strategy'>Strategy</button></nav>
+<div class='action-dock' aria-label='Swipe actions'><button class='swipe-btn no' type='button' data-global-no aria-label='No'>No</button><button class='swipe-btn yes' type='button' data-global-yes aria-label='Read'>Read</button></div>
 <section class='mini'><h2>More</h2><div class='mini-rail'><a class='mini-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Graph</strong></a><a class='mini-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training</strong></a><a class='mini-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>Curriculum</strong></a>{game_cards}</div></section>
 </main><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}</body></html>"""
 
