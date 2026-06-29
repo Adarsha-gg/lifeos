@@ -1590,8 +1590,10 @@ def _image_query_for_lesson(lesson: dict[str, Any], cats: list[str] | None = Non
     cats = cats or _lesson_categories(lesson)
     title = str(lesson.get("title") or "")
     text = f"{title} {' '.join(cats)}".lower()
+    if "programmer" in text or "lisp" in text or "python" in text or "language" in text:
+        return "Programmer"
     if "paul graham" in text or "startup" in cats:
-        return "Silicon Valley"
+        return "Y Combinator"
     if "history" in cats or "strategy" in cats:
         if "napoleon" in text:
             return "Napoleon"
@@ -1743,8 +1745,8 @@ setCat(localStorage.getItem(CAT_KEY)||'all');
 <meta name='color-scheme' content='light'>
 <title>LifeOS Deck</title>
 <style>
-*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#111;color:#f8f4ea;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}body{{display:grid;place-items:start center}}a{{color:inherit}}
-.app{{width:min(430px,100vw);min-height:100svh;padding:28px 14px 18px;background:radial-gradient(circle at 50% 0,#3a3328 0,#161411 46%,#0c0b09 100%)}}
+*{{box-sizing:border-box}}html,body{{margin:0;min-height:100%;background:#080808;color:#f8f4ea;font-family:Inter,system-ui,-apple-system,sans-serif;overflow-x:hidden}}body{{display:grid;place-items:start center}}a{{color:inherit}}
+.app{{width:min(430px,100vw);min-height:100svh;padding:28px 14px 18px;background:#080808}}
 .stage{{position:relative;width:min(350px,calc(100vw - 44px));height:clamp(430px,54svh,510px);margin:3svh auto 0;perspective:1400px}}
 .deck-card{{position:absolute;inset:0;background:#f8f4ea;color:#161411;border-radius:28px;overflow:hidden;box-shadow:0 22px 70px rgba(0,0,0,.45);transform:translate3d(0,calc(var(--i)*11px),0) scale(calc(1 - var(--i)*.05));z-index:calc(20 - var(--i));opacity:calc(1 - var(--i)*.13);transition:transform 520ms cubic-bezier(.18,.9,.18,1),opacity 360ms ease;will-change:transform,opacity;touch-action:pan-y}}
 .deck-card.exit-left{{transform:translate3d(-124%,20px,0) rotate(-18deg)!important;opacity:0!important}}.deck-card.exit-right{{transform:translate3d(124%,20px,0) rotate(18deg)!important;opacity:0!important}}
