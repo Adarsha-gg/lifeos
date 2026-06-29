@@ -16,3 +16,6 @@ Completed initial research plus PRODUCT.md and TECH.md for adaptive learning lev
 
 ### 2026-06-29 00:49:35
 Implemented v1 adaptive recommendation logic across graph, training queue, and learn deck. Added domain/overall levels, node level estimation, prerequisite readiness, due-review priority, explainable recommendation reasons, and level-aware deck ranking. Validation passed locally: generated scripts parse, seeded browser checks update assessment text, reset clears XP without reload, and 10-run global graph performance max renderMs was 17ms.
+
+### 2026-06-29 00:56:32
+User expanded the adaptive system: every level-up should feel game-like, with named ranks and a clear hierarchy/path of what comes first, next, and later. Updating spec and implementing this as a separate PR.

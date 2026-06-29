@@ -127,3 +127,13 @@ Browser checks:
 - Seeded progress graph/training screenshots.
 - Reset clears levels without reload.
 - Global graph performance loop max render under 100ms.
+
+## Expansion: game-like progression implementation
+
+Add browser-side helpers:
+
+- `rankTitle(level)` maps levels to named ranks.
+- `checkLevelUp(level)` stores `lifeos.level.lastSeen.v1` and shows a local level-up toast only when the current level exceeds the previously seen level.
+- `renderQuestPath(recommendations)` renders a compact ordered path using top due review, ready-next, and stretch recommendations.
+
+Keep this deterministic and local-only. Do not add a backend for this phase.
