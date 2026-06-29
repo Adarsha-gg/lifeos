@@ -7,8 +7,10 @@ export interface GraphPreviewNode {
   x: number;
   /** 0–100 vertical position. */
   y: number;
-  /** Node readiness — drives the dot color. */
+  /** Node readiness — drives fallback dot color. */
   state?: "mastered" | "ready" | "locked";
+  /** Optional actual graph/domain color. */
+  color?: string;
   /** Short label shown on the largest nodes. */
   label?: string;
 }
@@ -18,8 +20,10 @@ export interface GraphPreviewProps {
   nodeCount: number;
   /** Nodes the learner has mastered. */
   masteredCount: number;
-  /** A handful of nodes to plot in the mini-map (keep it light — ~6–10). */
+  /** A handful of nodes to plot in the mini-map (keep it light — ~6–18). */
   nodes?: GraphPreviewNode[];
+  /** Edges between node indices. */
+  edges?: [number, number][];
   /** Click handler for "Open world map". */
   onOpen?: () => void;
   className?: string;
@@ -34,7 +38,7 @@ const DEFAULT_NODES: GraphPreviewNode[] = [
   { x: 84, y: 60, state: "locked" },
 ];
 
-const EDGES: [number, number][] = [
+const DEFAULT_EDGES: [number, number][] = [
   [0, 1],
   [1, 2],
   [0, 3],
@@ -58,6 +62,7 @@ export function GraphPreview({
   nodeCount,
   masteredCount,
   nodes = DEFAULT_NODES,
+  edges = DEFAULT_EDGES,
   onOpen,
   className,
 }: GraphPreviewProps) {
@@ -65,17 +70,17 @@ export function GraphPreview({
     <section className={["lo-graph", className || ""].filter(Boolean).join(" ")}>
       <div className="lo-graph__head">
         <div>
-          <div className="lo-kicker">Your world map</div>
-          <h3 className="lo-graph__title lo-display">Knowledge constellation</h3>
+          <div className="lo-kicker">Your personal graph</div>
+          <h3 className="lo-graph__title lo-display">Mini knowledge map</h3>
         </div>
         <Pill tone="green" variant="soft">
-          {masteredCount}/{nodeCount} mastered
+          {masteredCount}/{nodeCount} learned
         </Pill>
       </div>
 
       <div className="lo-graph__canvas">
-        <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="lo-graph__svg">
-          {EDGES.map(([a, b], i) =>
+        {nodes.length ? <svg viewBox="0 0 100 80" preserveAspectRatio="none" className="lo-graph__svg">
+          {edges.map(([a, b], i) =>
             nodes[a] && nodes[b] ? (
               <line
                 key={i}
@@ -93,11 +98,11 @@ export function GraphPreview({
               cx={n.x}
               cy={n.y}
               r={n.label ? 3.4 : 2.2}
-              fill={COLOR[n.state || "ready"]}
+              fill={n.color || COLOR[n.state || "ready"]}
               className="lo-graph__node"
             />
           ))}
-        </svg>
+        </svg> : <div className="lo-graph__empty">No personal graph yet. Read something and mark it learned to light the first node.</div>}
         {nodes
           .filter((n) => n.label)
           .map((n, i) => (
@@ -113,7 +118,7 @@ export function GraphPreview({
 
       <div className="lo-graph__foot">
         <div className="lo-graph__legend">
-          <span><i style={{ background: COLOR.mastered }} />Mastered</span>
+          <span><i style={{ background: COLOR.mastered }} />Learned</span>
           <span><i style={{ background: COLOR.ready }} />Ready</span>
           <span><i style={{ background: COLOR.locked }} />Locked</span>
         </div>

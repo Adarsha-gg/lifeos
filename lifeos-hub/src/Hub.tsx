@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ProfileRankHeader,
   MainQuestCard,
@@ -13,6 +13,7 @@ import {
   Button,
   Pill,
 } from "lifeos-ds";
+import type { GraphPreviewNode } from "lifeos-ds";
 import {
   loadProfile,
   graphStats,
@@ -20,10 +21,13 @@ import {
   QUEST_PATH,
   GAMES,
   TRACKS,
+  LEVEL_SYSTEM,
+  LS_KEYS,
 } from "./data";
 
 const NAV = [
   { id: "character", ic: "🛡️", label: "Your character" },
+  { id: "progress", ic: "⭐", label: "Level progression" },
   { id: "quest", ic: "📜", label: "Main quest" },
   { id: "path", ic: "🧭", label: "Quest path" },
   { id: "deck", ic: "🃏", label: "Learning deck" },
@@ -39,9 +43,97 @@ function go(id: string, close: () => void) {
   close();
 }
 
+type MiniGraph = { nodeCount: number; masteredCount: number; nodes: GraphPreviewNode[]; edges: [number, number][] };
+type GraphNode = { id: string; title?: string; domain?: string; x?: number; y?: number };
+type GraphEdge = { from: string; to: string };
+
+function readDone() {
+  try {
+    const progress = JSON.parse(localStorage.getItem(LS_KEYS.progress) || "{}");
+    return progress && typeof progress.done === "object" ? progress.done as Record<string, any> : {};
+  } catch {
+    return {};
+  }
+}
+
+function shortLabel(title = "Node") {
+  const words = title.split(/\s+/).filter(Boolean);
+  return words.slice(0, 3).join(" ");
+}
+
+function miniPosition(nodes: GraphNode[]) {
+  const xs = nodes.map((n) => Number(n.x)).filter(Number.isFinite);
+  const ys = nodes.map((n) => Number(n.y)).filter(Number.isFinite);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const hasSpread = xs.length === nodes.length && ys.length === nodes.length && maxX - minX > 4 && maxY - minY > 4;
+  return nodes.map((n, i) => {
+    if (hasSpread) {
+      return {
+        x: 8 + ((Number(n.x) - minX) / Math.max(1, maxX - minX)) * 84,
+        y: 8 + ((Number(n.y) - minY) / Math.max(1, maxY - minY)) * 64,
+      };
+    }
+    const a = -Math.PI / 2 + (i / Math.max(1, nodes.length)) * Math.PI * 2;
+    return { x: 50 + Math.cos(a) * 35, y: 40 + Math.sin(a) * 26 };
+  });
+}
+
+function usePersonalMiniGraph(fallback: MiniGraph): MiniGraph {
+  const [mini, setMini] = useState<MiniGraph>(fallback);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const done = readDone();
+        const doneIds = new Set(Object.keys(done));
+        let response = await fetch("/learn/knowledge-graph.json", { cache: "no-store" });
+        if (!response.ok) response = await fetch("/output/learn/knowledge-graph.json", { cache: "no-store" });
+        if (!response.ok) throw new Error("knowledge graph unavailable");
+        const graph = await response.json() as { nodes: GraphNode[]; edges: GraphEdge[]; domains?: { id: string; color: string }[] };
+        const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+        const domainColor = new Map((graph.domains || []).map((d) => [d.id, d.color]));
+        const learned = Object.entries(done)
+          .sort((a, b) => Date.parse(String((b[1] as any)?.at || 0)) - Date.parse(String((a[1] as any)?.at || 0)))
+          .map(([id]) => id)
+          .filter((id) => byId.has(id));
+        const picked: string[] = [];
+        for (const id of learned) if (picked.length < 8) picked.push(id);
+        for (const e of graph.edges || []) {
+          if (picked.length >= 18) break;
+          if (doneIds.has(e.from) && byId.has(e.to) && !picked.includes(e.to)) picked.push(e.to);
+          if (picked.length >= 18) break;
+          if (doneIds.has(e.to) && byId.has(e.from) && !picked.includes(e.from)) picked.push(e.from);
+        }
+        const selected = picked.map((id) => byId.get(id)!).filter(Boolean);
+        const pos = miniPosition(selected);
+        const index = new Map(picked.map((id, i) => [id, i]));
+        const edges = (graph.edges || [])
+          .filter((e) => index.has(e.from) && index.has(e.to))
+          .slice(0, 28)
+          .map((e) => [index.get(e.from)!, index.get(e.to)!] as [number, number]);
+        const nodes = selected.map((n, i) => ({
+          x: pos[i].x,
+          y: pos[i].y,
+          state: doneIds.has(n.id) ? "mastered" as const : "ready" as const,
+          color: domainColor.get(n.domain || "") || undefined,
+          label: doneIds.has(n.id) && i < 3 ? shortLabel(n.title) : undefined,
+        }));
+        if (!cancelled) setMini({ nodeCount: graph.nodes.length || fallback.nodeCount, masteredCount: learned.length, nodes, edges });
+      } catch {
+        if (!cancelled) setMini(fallback);
+      }
+    }
+    load();
+    window.addEventListener("storage", load);
+    return () => { cancelled = true; window.removeEventListener("storage", load); };
+  }, [fallback.nodeCount, fallback.masteredCount]);
+  return mini;
+}
+
 export function Hub() {
   const profile = useMemo(loadProfile, []);
   const stats = useMemo(graphStats, []);
+  const miniGraph = usePersonalMiniGraph({ nodeCount: stats.nodeCount, masteredCount: stats.masteredCount, nodes: [], edges: [] });
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState(0);
 
@@ -92,7 +184,32 @@ export function Hub() {
           />
         </section>
 
-        {/* 2 — main quest */}
+        {/* 2 — level progression */}
+        <section id="progress" className="hub__section">
+          <div className="hub__section-head">
+            <h2 className="hub__section-title">Level progression</h2>
+            <Pill tone="gold" variant="soft">Level {profile.level}/4</Pill>
+          </div>
+          <div className="hub__level-ladder" aria-label="LifeOS level progression">
+            {LEVEL_SYSTEM.map((step) => {
+              const state = step.level < profile.level ? "done" : step.level === profile.level ? "current" : "locked";
+              return (
+                <div key={step.level} className={`hub__level-step ${state}`}>
+                  <span className="hub__level-badge">L{step.level}</span>
+                  <div>
+                    <b>{step.title}</b>
+                    <small>{step.threshold.toLocaleString()} XP · {step.unlock}</small>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="hub__progress-note">
+            You are in <b>{profile.rankTitle}</b>. Finish main quests and reviews to fill this level, then unlock the next band.
+          </div>
+        </section>
+
+        {/* 3 — main quest */}
         <section id="quest" className="hub__section">
           <MainQuestCard
             kind="review"
@@ -105,7 +222,7 @@ export function Hub() {
           />
         </section>
 
-        {/* 3 — quest path */}
+        {/* 4 — quest path */}
         <section id="path" className="hub__section">
           <div className="hub__section-head">
             <h2 className="hub__section-title">Your quest path</h2>
@@ -114,7 +231,7 @@ export function Hub() {
           <QuestPath steps={QUEST_PATH} />
         </section>
 
-        {/* 4 — learning deck */}
+        {/* 5 — learning deck */}
         <section id="deck" className="hub__section">
           <div className="hub__section-head">
             <h2 className="hub__section-title">Learning deck</h2>
@@ -139,16 +256,18 @@ export function Hub() {
           </div>
         </section>
 
-        {/* 5 — world map */}
+        {/* 6 — personal world map */}
         <section id="map" className="hub__section">
           <GraphPreview
-            nodeCount={stats.nodeCount}
-            masteredCount={stats.masteredCount}
+            nodeCount={miniGraph.nodeCount}
+            masteredCount={miniGraph.masteredCount}
+            nodes={miniGraph.nodes}
+            edges={miniGraph.edges}
             onOpen={() => { window.location.href = "/learn/skill-tree.html"; }}
           />
         </section>
 
-        {/* 6 — practice & games */}
+        {/* 7 — practice & games */}
         <section id="games" className="hub__section">
           <div className="hub__section-head">
             <h2 className="hub__section-title">Practice &amp; games</h2>
@@ -171,7 +290,7 @@ export function Hub() {
           </div>
         </section>
 
-        {/* 7 — tracks & reader */}
+        {/* 8 — tracks & reader */}
         <section id="library" className="hub__section">
           <CurriculumRail
             tracks={TRACKS}
@@ -179,7 +298,7 @@ export function Hub() {
           />
         </section>
 
-        {/* 8 — memory & profile */}
+        {/* 9 — memory & profile */}
         <section id="memory" className="hub__section">
           <MemoryPanel
             cloud={profile.persistence === "cloud-configured" ? "configured" : "not-configured"}
@@ -190,7 +309,7 @@ export function Hub() {
           />
         </section>
 
-        {/* 9 — mentor desk (teachers) */}
+        {/* 10 — mentor desk (teachers) */}
         <section id="mentor" className="hub__section">
           <TeacherPanel
             learner={isTeacher ? { name: "Mira", level: 3, rankTitle: "Level 3 · Pathfinder", xp: 240, xpToNext: 720, mastered: 18, total: 42, weakDomain: "Probability" } : undefined}
