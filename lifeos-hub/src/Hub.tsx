@@ -33,17 +33,8 @@ const SWIPE_EXIT_MS = 360;
 const MEMORY_KEYS = [LS_KEYS.progress, LS_KEYS.profile, LS_KEYS.skipped, LS_KEYS.yes, LS_KEYS.level] as const;
 
 const NAV = [
-  { id: "character", ic: "🛡️", label: "Your character" },
-  { id: "progress", ic: "⭐", label: "Level progression" },
-  { id: "quest", ic: "📜", label: "Main quest" },
-  { id: "portals", ic: "🧰", label: "LifeOS launchpad" },
-  { id: "path", ic: "🧭", label: "Quest path" },
-  { id: "deck", ic: "🃏", label: "Learning deck" },
-  { id: "map", ic: "🗺️", label: "World map" },
-  { id: "games", ic: "🎲", label: "Practice & games" },
-  { id: "library", ic: "📚", label: "Tracks & reader" },
-  { id: "memory", ic: "💾", label: "Memory & profile" },
-  { id: "mentor", ic: "🎓", label: "Mentor desk" },
+  { id: "quest", ic: "📜", label: "Today's due" },
+  { id: "deck", ic: "🃏", label: "Swipe deck" },
 ] as const;
 
 function go(id: string, close: () => void) {
@@ -277,8 +268,6 @@ function questPathFor(lesson: DeckLesson): QuestStep[] {
 
 export function Hub() {
   const profile = useMemo(loadProfile, []);
-  const stats = useMemo(graphStats, []);
-  const miniGraph = usePersonalMiniGraph({ nodeCount: stats.nodeCount, masteredCount: stats.masteredCount, nodes: [], edges: [] });
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState(0);
   const [drag, setDrag] = useState({ dx: 0, dy: 0, active: false });
@@ -286,15 +275,10 @@ export function Hub() {
   const [notice, setNotice] = useState("");
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const memoryImportRef = useRef<HTMLInputElement | null>(null);
-  const learnerImportRef = useRef<HTMLInputElement | null>(null);
   const deck = useHubDeck(DECK);
   const visibleDeck = useMemo(() => deck.filter((item) => !dismissed.has(item.id)), [deck, dismissed]);
 
-  const syncCode = encodeSyncCode(memoryBundle());
   const lesson = visibleDeck[card % Math.max(1, visibleDeck.length)] || DECK[0];
-  const questPath = useMemo(() => questPathFor(lesson), [lesson]);
-  const isTeacher = profile.role === "teacher";
   const swipeStyle = {
     "--hub-dx": `${drag.dx}px`,
     "--hub-dy": `${Math.max(-28, Math.min(28, drag.dy))}px`,
@@ -422,58 +406,39 @@ export function Hub() {
           <span className="hub__drawer-title">Quest menu</span>
           <button className="hub__drawer-close" aria-label="Close menu" onClick={() => setOpen(false)}>×</button>
         </div>
-        {NAV.filter((n) => n.id !== "mentor" || isTeacher).map((n) => (
-          <button key={n.id} className="hub__navlink" onClick={() => go(n.id, () => setOpen(false))}>
-            <span className="ic">{n.ic}</span>
-            {n.label}
-          </button>
-        ))}
+        <div className="hub__drawer-group">
+          <div className="hub__drawer-kicker">Primary</div>
+          {NAV.map((n) => (
+            <button key={n.id} className="hub__navlink" onClick={() => go(n.id, () => setOpen(false))}>
+              <span className="ic">{n.ic}</span>
+              {n.label}
+            </button>
+          ))}
+        </div>
+        <div className="hub__drawer-group">
+          <div className="hub__drawer-kicker">Secondary</div>
+          {HUB_PORTALS.map((group) => (
+            <div className="hub__drawer-subgroup" key={group.title}>
+              <div className="hub__drawer-subtitle">{group.title}</div>
+              {group.portals.map((portal) => (
+                <button
+                  key={portal.title}
+                  className="hub__navlink hub__navlink--portal"
+                  onClick={() => { setOpen(false); openPortal(portal.href, portal.localOnly); }}
+                >
+                  <span className="ic">{portal.glyph}</span>
+                  {portal.title}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
       </nav>
 
       {/* one page */}
-      <main className="hub__main">
+      <main className="hub__main hub__main--primary">
         {notice && <div className="hub__notice" role="status">{notice}</div>}
-        {/* 1 — character */}
-        <section id="character" className="hub__section">
-          <ProfileRankHeader
-            name={profile.name}
-            role={profile.role}
-            level={profile.level}
-            rankTitle={profile.rankTitle}
-            tier={profile.tier}
-            xp={profile.xp}
-            xpToNext={profile.xpToNext}
-            streak={profile.streak}
-            persistence={profile.persistence}
-          />
-        </section>
-
-        {/* 2 — level progression */}
-        <section id="progress" className="hub__section">
-          <div className="hub__section-head">
-            <h2 className="hub__section-title">Level progression</h2>
-            <Pill tone="gold" variant="soft">Level {profile.level}/4</Pill>
-          </div>
-          <div className="hub__level-ladder" aria-label="LifeOS level progression">
-            {LEVEL_SYSTEM.map((step) => {
-              const state = step.level < profile.level ? "done" : step.level === profile.level ? "current" : "locked";
-              return (
-                <div key={step.level} className={`hub__level-step ${state}`}>
-                  <span className="hub__level-badge">L{step.level}</span>
-                  <div>
-                    <b>{step.title}</b>
-                    <small>{step.threshold.toLocaleString()} XP · {step.unlock}</small>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="hub__progress-note">
-            You are in <b>{profile.rankTitle}</b>. Finish main quests and reviews to fill this level, then unlock the next band.
-          </div>
-        </section>
-
-        {/* 3 — main quest */}
+        {/* 1 — today due */}
         <section id="quest" className="hub__section">
           <MainQuestCard
             kind="review"
@@ -486,62 +451,10 @@ export function Hub() {
           />
         </section>
 
-        {/* 4 — launchpad */}
-        <section id="portals" className="hub__section">
-          <div className="hub__section-head">
-            <h2 className="hub__section-title">LifeOS launchpad</h2>
-            <Pill tone="gold" variant="soft">Everything lives here</Pill>
-          </div>
-          <div className="hub__portal-groups">
-            {HUB_PORTALS.map((group) => (
-              <article className="hub__portal-group" key={group.title}>
-                <div className="hub__portal-group-head">
-                  <div>
-                    <div className="lo-kicker">{group.kicker}</div>
-                    <h3 className="hub__portal-group-title lo-display">{group.title}</h3>
-                  </div>
-                  <Pill tone="neutral" variant="soft">{group.portals.length}</Pill>
-                </div>
-                <div className="hub__portal-grid">
-                  {group.portals.map((portal) => (
-                    <button
-                      key={portal.title}
-                      type="button"
-                      className={`hub__portal-card ${portal.localOnly ? "is-local-only" : ""}`}
-                      onClick={() => openPortal(portal.href, portal.localOnly)}
-                    >
-                      <span className="hub__portal-glyph" aria-hidden>{portal.glyph}</span>
-                      <span className="hub__portal-copy">
-                        <span className="hub__portal-top">
-                          <Pill tone={portal.tone} variant="soft">{portal.tag}</Pill>
-                          {portal.localOnly && <span className="hub__portal-local">local only</span>}
-                        </span>
-                        <span className="hub__portal-title lo-display">{portal.title}</span>
-                        <span className="hub__portal-desc lo-serif">{portal.description}</span>
-                      </span>
-                      <span className="hub__portal-arrow" aria-hidden>→</span>
-                    </button>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* 5 — quest path */}
-        <section id="path" className="hub__section">
-          <div className="hub__section-head">
-            <h2 className="hub__section-title">Your quest path</h2>
-            <Pill tone="neutral" variant="soft">4 steps</Pill>
-          </div>
-          <QuestPath steps={questPath} />
-        </section>
-
-        {/* 5 — learning deck */}
+        {/* 2 — swipe deck */}
         <section id="deck" className="hub__section">
           <div className="hub__section-head">
             <h2 className="hub__section-title">Learning deck</h2>
-            <a className="hub__section-link" href="/learn/">Open full deck →</a>
           </div>
           <div className="hub__deck-wrap">
             <div className="hub__deck-stack">
@@ -575,97 +488,6 @@ export function Hub() {
           </div>
         </section>
 
-        {/* 6 — personal world map */}
-        <section id="map" className="hub__section">
-          <GraphPreview
-            nodeCount={miniGraph.nodeCount}
-            masteredCount={miniGraph.masteredCount}
-            nodes={miniGraph.nodes}
-            edges={miniGraph.edges}
-            onOpen={() => { window.location.href = "/learn/skill-tree.html"; }}
-          />
-        </section>
-
-        {/* 7 — practice & games */}
-        <section id="games" className="hub__section">
-          <div className="hub__section-head">
-            <h2 className="hub__section-title">Practice &amp; games</h2>
-            <Pill tone="green" variant="soft">Training quests</Pill>
-          </div>
-          <div className="hub__row hub__games">
-            {GAMES.map((g) => {
-              const locked = Boolean(g.locked && profile.level < 4);
-              return (
-                <GameQuestCard
-                  key={g.title}
-                  title={g.title}
-                  description={g.description}
-                  skill={g.skill}
-                  glyph={g.glyph}
-                  bestScore={g.bestScore}
-                  xpReward={g.xpReward}
-                  locked={locked}
-                  onPlay={() => { if (!locked) window.location.href = g.href; }}
-                />
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 8 — tracks & reader */}
-        <section id="library" className="hub__section">
-          <CurriculumRail
-            tracks={TRACKS}
-            onOpen={openTrack}
-          />
-        </section>
-
-        {/* 9 — memory & profile */}
-        <section id="memory" className="hub__section">
-          <input
-            ref={memoryImportRef}
-            className="hub__hidden-file"
-            type="file"
-            accept="application/json"
-            onChange={(event) => importMemoryFile(event.target.files?.[0], "memory")}
-          />
-          <MemoryPanel
-            cloud={profile.persistence === "cloud-configured" ? "configured" : "not-configured"}
-            syncCode={syncPreview(syncCode)}
-            onExport={downloadMemory}
-            onImport={() => memoryImportRef.current?.click()}
-            onCopyCode={copySyncCode}
-          />
-        </section>
-
-        {/* 10 — mentor desk (teachers) */}
-        <section id="mentor" className="hub__section">
-          {isTeacher ? (
-            <>
-              <input
-                ref={learnerImportRef}
-                className="hub__hidden-file"
-                type="file"
-                accept="application/json"
-                onChange={(event) => importMemoryFile(event.target.files?.[0], "learner memory")}
-              />
-              <TeacherPanel
-                learner={{ name: "Mira", level: 3, rankTitle: "Level 3 · Pathfinder", xp: 240, xpToNext: 720, mastered: 18, total: 42, weakDomain: "Probability" }}
-                onImportLearner={() => learnerImportRef.current?.click()}
-                onRecommend={() => go("path", () => {})}
-              />
-            </>
-          ) : (
-            <div className="hub__hint">
-              <Button variant="ghost" size="sm" icon="🎓" onClick={() => {
-                localStorage.setItem(LS_KEYS.profile, JSON.stringify({ role: "teacher", updated_at: new Date().toISOString() }));
-                window.location.reload();
-              }}>
-                I'm a mentor — switch to teacher mode
-              </Button>
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );

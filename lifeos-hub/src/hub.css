@@ -104,6 +104,17 @@ body { background: var(--lo-paper); }
 }
 .hub__navlink:hover { background: var(--lo-card-2); border-left-color: var(--lo-gold); }
 .hub__navlink .ic { font-size: 18px; width: 22px; text-align: center; }
+.hub__drawer-group { display: grid; gap: 4px; margin-bottom: 16px; }
+.hub__drawer-kicker,
+.hub__drawer-subtitle {
+  padding: 10px 8px 4px;
+  color: var(--lo-muted);
+  font: 900 11px/1 var(--lo-font-ui);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.hub__drawer-subgroup { display: grid; gap: 2px; }
+.hub__navlink--portal { font-size: 14px; padding-top: 10px; padding-bottom: 10px; }
 
 /* --- main scroll --- */
 .hub__main {
@@ -114,6 +125,7 @@ body { background: var(--lo-paper); }
   display: grid;
   gap: 26px;
 }
+.hub__main--primary { max-width: 640px; }
 .hub__main > *,
 .hub__section,
 .hub__section > *,
@@ -330,7 +342,12 @@ body { background: var(--lo-paper); }
     align-items: start;
     gap: 28px;
   }
+  .hub__main--primary {
+    max-width: 640px;
+    grid-template-columns: minmax(0, 1fr);
+  }
   .hub__section { grid-column: span 2; }
+  .hub__main--primary .hub__section { grid-column: 1; }
   #deck,
   #map,
   #games,
