@@ -14,3 +14,7 @@ Implemented first app-only commercial pass on branch lifeos/commercial-agentic-d
 ### 2026-06-30 03:13:52 - Milestone
 
 Addressed reviewer findings: corrected two seeded fallback art URLs to match generated graph IDs so fallback deck art no longer 404s, and added `lifeos.notes.v1` to the older `/learn/profile.html` export/import key list so notes port from either the Hub account export or the profile memory page. Rebuilt and revalidated static artifacts, profile export key, art manifest count, and responsive Hub behavior.
+
+### 2026-06-30 03:17:07 - Milestone
+
+PR #40 was merged to main and live-verified on Vercel at `https://lifeos-review.vercel.app/hub?v=40`. Live checks passed: Hub main sections are exactly `quest` and `deck`, morning agent brief has three graph-ranked picks, deck controls remain only No/Read, top-right account panel contains Google sign-in, phone handoff, export, completed quests, mini graph, notes, and newcomer pricing ($10/$50/$90), mythic art loads from `/learn/art/mythic/...`, and the live art manifest has 594 records.
