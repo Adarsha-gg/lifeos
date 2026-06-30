@@ -1664,7 +1664,7 @@ function ranked(cat){
  const done=doneIds(),pref=prefs(done),lvl=learnerLevel(done),skipped=load(SKIP_KEY,{}),day=new Date().toISOString().slice(0,10);
  let pool=CATALOG.filter(item=>!done.has(item.id)&&!skipped[item.id]);
  if(cat&&cat!=='all')pool=pool.filter(item=>(item.categories||[]).includes(cat));
- let scored=pool.map(item=>{let s=item.daily?70:0;if(item.artUrl)s+=160;const gap=Math.abs((item.level||1)-(lvl+1));s+=Math.max(0,70-gap*20);if(done.size){for(const c of item.categories||[])s+=(pref[c]||0)*24}else{s+=item.daily?120:25}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
+ let scored=pool.map(item=>{let s=item.daily?70:0;if(item.artUrl)s+=340;const gap=Math.abs((item.level||1)-(lvl+1));s+=Math.max(0,70-gap*20);if(done.size){for(const c of item.categories||[])s+=(pref[c]||0)*24}else{s+=item.daily?120:25}s+=(hash(item.id+day)%1000)/1000;return {item,s}}).sort((a,b)=>b.s-a.s).map(x=>x.item);
  if(scored.length<18){const seen=new Set(scored.map(x=>x.id));CATALOG.filter(item=>!seen.has(item.id)&&!done.has(item.id)).slice(0,18-scored.length).forEach(item=>scored.push(item))}
  return scored;
 }
