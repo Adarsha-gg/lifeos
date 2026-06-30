@@ -121,6 +121,18 @@ body { background: var(--lo-paper); }
   color: var(--lo-accent); font: 700 13px var(--lo-font-ui);
 }
 .hub__row { display: grid; gap: 12px; }
+.hub__notice {
+  position: sticky;
+  top: 66px;
+  z-index: 20;
+  border: 1px solid var(--lo-gold);
+  background: var(--lo-gold-wash);
+  color: var(--lo-ink);
+  box-shadow: var(--lo-shadow-md);
+  padding: 10px 12px;
+  font: 800 13px/1.35 var(--lo-font-ui);
+}
+.hub__hidden-file { display: none; }
 .hub__deck-wrap { display: grid; gap: 16px; justify-items: center; }
 .hub__deck-stack { width: 100%; max-width: 386px; position: relative; display: grid; justify-items: center; padding-top: 18px; isolation: isolate; }
 .hub__deck-stack::before,

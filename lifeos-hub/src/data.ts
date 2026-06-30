@@ -153,8 +153,8 @@ export interface QuestStep {
 export const QUEST_PATH: QuestStep[] = [
   { lane: "Review", title: "Clear 3 due cards", detail: "Spaced repetition — due today.", state: "current", xp: 80, href: "/learn/learning-system.html" },
   { lane: "Ready next", title: "Al-Khwarizmi & Algorithmic Procedure", detail: "Level 2 fit, builds on logic foundations.", state: "ready", xp: 120, href: "/learn/analytical-minds-al-khwarizmi-and-algorithmic-procedure.html" },
-  { lane: "Stretch", title: "Stretch the next proof path", detail: "Open the graph to choose the next locked node to unlock.", state: "locked", xp: 200, href: "/learn/skill-tree.html?mode=global" },
-  { lane: "Explore", title: "Play: Dawn of Civilization", detail: "A training quest for systems leverage.", state: "ready", xp: 60, href: "/learn/game-civilization.html" },
+  { lane: "Stretch", title: "Choose a stretch path", detail: "Open the graph and pick the next harder node to unlock.", state: "ready", xp: 200, href: "/learn/skill-tree.html?mode=global" },
+  { lane: "Explore", title: "Play: Orbit", detail: "A playable training quest for systems feedback.", state: "ready", xp: 60, href: "/learn/game-orbit.html" },
 ];
 
 export interface Game {

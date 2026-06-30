@@ -29,6 +29,7 @@ import {
 
 const SWIPE_THRESHOLD = 86;
 const SWIPE_EXIT_MS = 360;
+const MEMORY_KEYS = [LS_KEYS.progress, LS_KEYS.profile, LS_KEYS.skipped, LS_KEYS.yes, LS_KEYS.level] as const;
 
 const NAV = [
   { id: "character", ic: "🛡️", label: "Your character" },
@@ -74,6 +75,33 @@ function writeDeckChoice(key: string, id: string) {
   const current = readMap(key);
   current[id] = { at: new Date().toISOString() };
   localStorage.setItem(key, JSON.stringify(current));
+}
+
+function memoryBundle() {
+  const storage: Record<string, string> = {};
+  for (const key of MEMORY_KEYS) {
+    const value = localStorage.getItem(key);
+    if (value != null) storage[key] = value;
+  }
+  return { version: 1, exported_at: new Date().toISOString(), storage };
+}
+
+function applyMemoryBundle(data: any) {
+  if (!data || typeof data !== "object" || !data.storage || typeof data.storage !== "object") {
+    throw new Error("Not a LifeOS memory bundle");
+  }
+  for (const [key, value] of Object.entries(data.storage)) {
+    if ((MEMORY_KEYS as readonly string[]).includes(key) && typeof value === "string") localStorage.setItem(key, value);
+  }
+  window.dispatchEvent(new Event("storage"));
+}
+
+function encodeSyncCode(data: unknown) {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+}
+
+function syncPreview(code: string) {
+  return code.length > 40 ? `${code.slice(0, 24)}…${code.slice(-10)}` : code;
 }
 
 function hash(s: string) {
@@ -253,10 +281,16 @@ export function Hub() {
   const [card, setCard] = useState(0);
   const [drag, setDrag] = useState({ dx: 0, dy: 0, active: false });
   const [exit, setExit] = useState<"left" | "right" | null>(null);
+  const [notice, setNotice] = useState("");
+  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const memoryImportRef = useRef<HTMLInputElement | null>(null);
+  const learnerImportRef = useRef<HTMLInputElement | null>(null);
   const deck = useHubDeck(DECK);
+  const visibleDeck = useMemo(() => deck.filter((item) => !dismissed.has(item.id)), [deck, dismissed]);
 
-  const lesson = deck[card % Math.max(1, deck.length)] || DECK[0];
+  const syncCode = encodeSyncCode(memoryBundle());
+  const lesson = visibleDeck[card % Math.max(1, visibleDeck.length)] || DECK[0];
   const questPath = useMemo(() => questPathFor(lesson), [lesson]);
   const isTeacher = profile.role === "teacher";
   const swipeStyle = {
@@ -282,7 +316,8 @@ export function Hub() {
         window.location.href = lesson.href;
         return;
       }
-      setCard((c) => c + 1);
+      setDismissed((prev) => new Set(prev).add(lesson.id));
+      setCard(0);
       setExit(null);
       resetSwipe();
     }, SWIPE_EXIT_MS);
@@ -314,6 +349,50 @@ export function Hub() {
     resetSwipe();
   }
 
+  function downloadMemory() {
+    const blob = new Blob([JSON.stringify(memoryBundle(), null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `lifeos-memory-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setNotice("Memory bundle downloaded.");
+  }
+
+  function importMemoryFile(file?: File | null, label = "memory") {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        applyMemoryBundle(JSON.parse(String(reader.result || "{}")));
+        setNotice(`Imported ${label} bundle. Refreshing progress…`);
+        window.setTimeout(() => window.location.reload(), 250);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : `Could not import ${label}.`);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function copySyncCode() {
+    try {
+      await navigator.clipboard?.writeText(syncCode);
+      setNotice("Full sync code copied from your actual local memory.");
+    } catch {
+      setNotice("Clipboard was blocked. Use Export memory to download the same data.");
+    }
+  }
+
+  function openTrack(index: number) {
+    const track = TRACKS[index];
+    if (!track) return;
+    if (track.kind === "private" && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+      setNotice("Private readers are local-only. Run LifeOS locally, then open /private.");
+      return;
+    }
+    window.location.href = track.href;
+  }
+
   return (
     <div className="lo-root hub">
       {/* top bar */}
@@ -343,6 +422,7 @@ export function Hub() {
 
       {/* one page */}
       <main className="hub__main">
+        {notice && <div className="hub__notice" role="status">{notice}</div>}
         {/* 1 — character */}
         <section id="character" className="hub__section">
           <ProfileRankHeader
@@ -392,7 +472,7 @@ export function Hub() {
             reason="Reviewing now keeps these concepts in long-term memory — and protects your streak."
             xpReward={80}
             minutes={6}
-            onStart={() => go("deck", () => {})}
+            onStart={() => { window.location.href = "/learn/learning-system.html"; }}
           />
         </section>
 
@@ -439,7 +519,7 @@ export function Hub() {
               onRead={() => commitSwipe("right")}
               disabled={Boolean(exit)}
             />
-            <div className="hub__hint">Card {(card % Math.max(1, deck.length)) + 1} of {deck.length} · graph-ranked · only "No" and "Read"</div>
+            <div className="hub__hint">{visibleDeck.length ? `Card ${(card % visibleDeck.length) + 1} of ${visibleDeck.length}` : "No graph-ranked cards left"} · graph-ranked · only "No" and "Read"</div>
           </div>
         </section>
 
@@ -461,19 +541,22 @@ export function Hub() {
             <Pill tone="green" variant="soft">Training quests</Pill>
           </div>
           <div className="hub__row hub__games">
-            {GAMES.map((g) => (
-              <GameQuestCard
-                key={g.title}
-                title={g.title}
-                description={g.description}
-                skill={g.skill}
-                glyph={g.glyph}
-                bestScore={g.bestScore}
-                xpReward={g.xpReward}
-                locked={g.locked}
-                onPlay={() => { if (!g.locked) window.location.href = g.href; }}
-              />
-            ))}
+            {GAMES.map((g) => {
+              const locked = Boolean(g.locked && profile.level < 4);
+              return (
+                <GameQuestCard
+                  key={g.title}
+                  title={g.title}
+                  description={g.description}
+                  skill={g.skill}
+                  glyph={g.glyph}
+                  bestScore={g.bestScore}
+                  xpReward={g.xpReward}
+                  locked={locked}
+                  onPlay={() => { if (!locked) window.location.href = g.href; }}
+                />
+              );
+            })}
           </div>
         </section>
 
@@ -481,31 +564,51 @@ export function Hub() {
         <section id="library" className="hub__section">
           <CurriculumRail
             tracks={TRACKS}
-            onOpen={(i) => { window.location.href = TRACKS[i].href; }}
+            onOpen={openTrack}
           />
         </section>
 
         {/* 9 — memory & profile */}
         <section id="memory" className="hub__section">
+          <input
+            ref={memoryImportRef}
+            className="hub__hidden-file"
+            type="file"
+            accept="application/json"
+            onChange={(event) => importMemoryFile(event.target.files?.[0], "memory")}
+          />
           <MemoryPanel
             cloud={profile.persistence === "cloud-configured" ? "configured" : "not-configured"}
-            syncCode="LIFEOS-7QF2-9KD1-AAC8"
-            onExport={() => alert("Exports your LifeOS memory JSON (wire to /api or download).")}
-            onImport={() => alert("Import a LifeOS memory JSON / paste a sync code.")}
-            onCopyCode={() => navigator.clipboard?.writeText("LIFEOS-7QF2-9KD1-AAC8")}
+            syncCode={syncPreview(syncCode)}
+            onExport={downloadMemory}
+            onImport={() => memoryImportRef.current?.click()}
+            onCopyCode={copySyncCode}
           />
         </section>
 
         {/* 10 — mentor desk (teachers) */}
         <section id="mentor" className="hub__section">
-          <TeacherPanel
-            learner={isTeacher ? { name: "Mira", level: 3, rankTitle: "Level 3 · Pathfinder", xp: 240, xpToNext: 720, mastered: 18, total: 42, weakDomain: "Probability" } : undefined}
-            onImportLearner={() => alert("Import a learner bundle / paste their sync code.")}
-            onRecommend={() => go("path", () => {})}
-          />
-          {!isTeacher && (
+          {isTeacher ? (
+            <>
+              <input
+                ref={learnerImportRef}
+                className="hub__hidden-file"
+                type="file"
+                accept="application/json"
+                onChange={(event) => importMemoryFile(event.target.files?.[0], "learner memory")}
+              />
+              <TeacherPanel
+                learner={{ name: "Mira", level: 3, rankTitle: "Level 3 · Pathfinder", xp: 240, xpToNext: 720, mastered: 18, total: 42, weakDomain: "Probability" }}
+                onImportLearner={() => learnerImportRef.current?.click()}
+                onRecommend={() => go("path", () => {})}
+              />
+            </>
+          ) : (
             <div className="hub__hint">
-              <Button variant="ghost" size="sm" icon="🎓" onClick={() => alert("Switches this device to teacher/mentor mode.")}>
+              <Button variant="ghost" size="sm" icon="🎓" onClick={() => {
+                localStorage.setItem(LS_KEYS.profile, JSON.stringify({ role: "teacher", updated_at: new Date().toISOString() }));
+                window.location.reload();
+              }}>
                 I'm a mentor — switch to teacher mode
               </Button>
             </div>
