@@ -8,8 +8,8 @@ export const LS_KEYS = {
   profile: "lifeos.profile.v1",
   notes: "lifeos.notes.v1",
   authUser: "lifeos.auth.user.v1",
-  skipped: "lifeos.deck.skipped.v2",
-  yes: "lifeos.deck.yes.v2",
+  skipped: "lifeos.deck.skipped.v3",
+  yes: "lifeos.deck.yes.v3",
 } as const;
 
 function readJSON<T>(key: string, fallback: T): T {
