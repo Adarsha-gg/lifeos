@@ -74,7 +74,22 @@ def build_hub(env: dict[str, str]) -> dict[str, Any]:
 
 def write_review_page() -> None:
     (PUBLIC / "review.html").write_text(
-        """<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LifeOS Review</title><style>body{font-family:system-ui;margin:0;min-height:100vh;display:grid;place-items:center;background:#07100c;color:#eaffef}main{max-width:680px;padding:32px}a{color:#58d68d;font-weight:800}</style></head><body><main><h1>LifeOS Quest Hub</h1><p>This public build is generated from the GitHub repository on every Vercel deployment.</p><p><a href=\"/hub\">Open the Quest Hub →</a></p></main></body></html>""",
+        """<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LifeOS Review</title><style>body{font-family:system-ui;margin:0;min-height:100vh;display:grid;place-items:center;background:#07100c;color:#eaffef}main{max-width:680px;padding:32px}a{color:#58d68d;font-weight:800}</style></head><body><main><h1>LifeOS Quest Hub</h1><p>This public build is generated from the GitHub repository on every Vercel deployment.</p><p><a href=\"/\">Open the Quest Hub →</a></p></main></body></html>""",
+        encoding="utf-8",
+    )
+
+
+def write_root_hub_entry() -> None:
+    """Serve the Quest Hub at the deployment root while keeping /hub as an alias."""
+    hub_index = HUB_PUBLIC / "index.html"
+    if hub_index.exists():
+        shutil.copy2(hub_index, PUBLIC / "index.html")
+        return
+    (PUBLIC / "index.html").write_text(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+        "<meta http-equiv=\"refresh\" content=\"0; url=/learn\">"
+        "<title>LifeOS Quest Hub</title></head>"
+        "<body><a href=\"/learn\">Open LifeOS Learn →</a></body></html>",
         encoding="utf-8",
     )
 
@@ -108,6 +123,7 @@ def main() -> int:
     shutil.copytree(LEARN_OUT, LEARN_PUBLIC)
     write_review_page()
     hub = build_hub(env)
+    write_root_hub_entry()
 
     manifest = {
         "ok": True,

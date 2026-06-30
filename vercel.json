@@ -3,13 +3,6 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/hub",
-      "permanent": false
-    }
-  ],
   "rewrites": [
     {
       "source": "/output/learn/:path*",
