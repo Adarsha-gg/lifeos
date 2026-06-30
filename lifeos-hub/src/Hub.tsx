@@ -22,6 +22,7 @@ import {
   GAMES,
   TRACKS,
   LEVEL_SYSTEM,
+  HUB_PORTALS,
   LS_KEYS,
   type DeckLesson,
   type QuestStep,
@@ -35,6 +36,7 @@ const NAV = [
   { id: "character", ic: "🛡️", label: "Your character" },
   { id: "progress", ic: "⭐", label: "Level progression" },
   { id: "quest", ic: "📜", label: "Main quest" },
+  { id: "portals", ic: "🧰", label: "LifeOS launchpad" },
   { id: "path", ic: "🧭", label: "Quest path" },
   { id: "deck", ic: "🃏", label: "Learning deck" },
   { id: "map", ic: "🗺️", label: "World map" },
@@ -393,6 +395,14 @@ export function Hub() {
     window.location.href = track.href;
   }
 
+  function openPortal(href: string, localOnly?: boolean) {
+    if (localOnly && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+      setNotice("That reader is local-only. Run LifeOS locally, then open /private.");
+      return;
+    }
+    window.location.href = href;
+  }
+
   return (
     <div className="lo-root hub">
       {/* top bar */}
@@ -476,7 +486,49 @@ export function Hub() {
           />
         </section>
 
-        {/* 4 — quest path */}
+        {/* 4 — launchpad */}
+        <section id="portals" className="hub__section">
+          <div className="hub__section-head">
+            <h2 className="hub__section-title">LifeOS launchpad</h2>
+            <Pill tone="gold" variant="soft">Everything lives here</Pill>
+          </div>
+          <div className="hub__portal-groups">
+            {HUB_PORTALS.map((group) => (
+              <article className="hub__portal-group" key={group.title}>
+                <div className="hub__portal-group-head">
+                  <div>
+                    <div className="lo-kicker">{group.kicker}</div>
+                    <h3 className="hub__portal-group-title lo-display">{group.title}</h3>
+                  </div>
+                  <Pill tone="neutral" variant="soft">{group.portals.length}</Pill>
+                </div>
+                <div className="hub__portal-grid">
+                  {group.portals.map((portal) => (
+                    <button
+                      key={portal.title}
+                      type="button"
+                      className={`hub__portal-card ${portal.localOnly ? "is-local-only" : ""}`}
+                      onClick={() => openPortal(portal.href, portal.localOnly)}
+                    >
+                      <span className="hub__portal-glyph" aria-hidden>{portal.glyph}</span>
+                      <span className="hub__portal-copy">
+                        <span className="hub__portal-top">
+                          <Pill tone={portal.tone} variant="soft">{portal.tag}</Pill>
+                          {portal.localOnly && <span className="hub__portal-local">local only</span>}
+                        </span>
+                        <span className="hub__portal-title lo-display">{portal.title}</span>
+                        <span className="hub__portal-desc lo-serif">{portal.description}</span>
+                      </span>
+                      <span className="hub__portal-arrow" aria-hidden>→</span>
+                    </button>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* 5 — quest path */}
         <section id="path" className="hub__section">
           <div className="hub__section-head">
             <h2 className="hub__section-title">Your quest path</h2>

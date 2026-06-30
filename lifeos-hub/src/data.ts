@@ -157,6 +157,65 @@ export const QUEST_PATH: QuestStep[] = [
   { lane: "Explore", title: "Play: Orbit", detail: "A playable training quest for systems feedback.", state: "ready", xp: 60, href: "/learn/game-orbit.html" },
 ];
 
+export interface HubPortal {
+  title: string;
+  description: string;
+  href: string;
+  glyph: string;
+  tag: string;
+  tone: "gold" | "accent" | "blue" | "green" | "neutral";
+  localOnly?: boolean;
+}
+
+export interface HubPortalGroup {
+  title: string;
+  kicker: string;
+  portals: HubPortal[];
+}
+
+export const HUB_PORTALS: HubPortalGroup[] = [
+  {
+    kicker: "Start here",
+    title: "Daily flow",
+    portals: [
+      { title: "Swipe deck", description: "The full Tinder-style card deck.", href: "/learn/", glyph: "🃏", tag: "Deck", tone: "accent" },
+      { title: "Training queue", description: "Reviews, frontier nodes, and mastery recommendations.", href: "/learn/learning-system.html", glyph: "⚡", tag: "Review", tone: "blue" },
+      { title: "Profile memory", description: "Export/import progress, sync code, teacher role.", href: "/learn/profile.html", glyph: "💾", tag: "Memory", tone: "neutral" },
+    ],
+  },
+  {
+    kicker: "World map",
+    title: "Graphs & tracks",
+    portals: [
+      { title: "Personal graph", description: "Your learned nodes and nearby ready frontier.", href: "/learn/skill-tree.html", glyph: "🕸️", tag: "Map", tone: "green" },
+      { title: "Global graph", description: "The whole LifeOS terrain, including locked future nodes.", href: "/learn/skill-tree.html?mode=global", glyph: "🌌", tag: "Global", tone: "blue" },
+      { title: "Mastery curriculum", description: "Structured math, physics, and startup tracks.", href: "/learn/curriculum.html", glyph: "🗺️", tag: "Tracks", tone: "gold" },
+    ],
+  },
+  {
+    kicker: "Practice",
+    title: "Games, drills & arenas",
+    portals: [
+      { title: "Orbit", description: "Balance gravity and thrust for feedback-loop practice.", href: "/learn/game-orbit.html", glyph: "🪐", tag: "Game", tone: "green" },
+      { title: "Dawn of Civilization", description: "Resource-strategy training for systems leverage.", href: "/learn/game-civilization.html", glyph: "🏛️", tag: "Game", tone: "gold" },
+      { title: "Quantum Zoo", description: "Classify particles fast: matter or force carrier.", href: "/learn/drill-quantum.html", glyph: "⚛️", tag: "Drill", tone: "blue" },
+      { title: "Prime Time", description: "Fast prime/composite number practice.", href: "/learn/drill-primes.html", glyph: "🔢", tag: "Drill", tone: "accent" },
+      { title: "Civilization Builder 3D", description: "3D arena for resource and growth decisions.", href: "/learn/arena-civilization.html", glyph: "🏟️", tag: "Arena", tone: "gold" },
+      { title: "Quantum Field Sorter 3D", description: "A 3D practice arena for field intuition.", href: "/learn/arena-quantum-fields.html", glyph: "🌐", tag: "Arena", tone: "blue" },
+    ],
+  },
+  {
+    kicker: "Deep reading",
+    title: "Sources & libraries",
+    portals: [
+      { title: "Paul Graham companions", description: "Founder essays as source-first learning cards.", href: "/learn/pg-corpdev.html", glyph: "✍️", tag: "Source", tone: "accent" },
+      { title: "Caesar source map", description: "Roman sources, myth filters, and historical context.", href: "/learn/caesar-source-map-and-myth-filter.html", glyph: "🏺", tag: "History", tone: "gold" },
+      { title: "Deep history", description: "Socrates, Plato, Alexandria, and civilization roots.", href: "/learn/deep-socrates-athens.html", glyph: "📚", tag: "Deep", tone: "blue" },
+      { title: "Private reader", description: "Local-only full-text library; never mirrored to Vercel.", href: "/private", glyph: "🔒", tag: "Local", tone: "neutral", localOnly: true },
+    ],
+  },
+];
+
 export interface Game {
   title: string;
   description: string;

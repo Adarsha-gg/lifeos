@@ -133,6 +133,57 @@ body { background: var(--lo-paper); }
   font: 800 13px/1.35 var(--lo-font-ui);
 }
 .hub__hidden-file { display: none; }
+.hub__portal-groups { display: grid; gap: 14px; }
+.hub__portal-group {
+  background: var(--lo-card);
+  border: 1px solid var(--lo-line);
+  border-radius: 24px;
+  padding: var(--lo-sp-4);
+  box-shadow: var(--lo-shadow-md), var(--lo-shadow-inset);
+}
+.hub__portal-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--lo-sp-4);
+  margin-bottom: 12px;
+}
+.hub__portal-group-title { margin: 4px 0 0; font-size: 20px; }
+.hub__portal-grid { display: grid; gap: 9px; }
+.hub__portal-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 46px 1fr 18px;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  color: var(--lo-ink);
+  background: rgba(255,248,236,.78);
+  border: 1px solid var(--lo-line);
+  border-radius: 18px;
+  padding: 11px 12px;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(32,24,14,.04);
+}
+.hub__portal-card:hover { transform: translateY(-1px); border-color: var(--lo-line-strong); box-shadow: 0 14px 28px rgba(32,24,14,.08); }
+.hub__portal-card:focus-visible { outline: 3px solid var(--lo-gold-wash); outline-offset: 2px; }
+.hub__portal-card.is-local-only { border-style: dashed; }
+.hub__portal-glyph {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--lo-paper-2);
+  border: 1px solid var(--lo-line);
+  font-size: 22px;
+}
+.hub__portal-copy { min-width: 0; display: grid; gap: 4px; }
+.hub__portal-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hub__portal-local { font: 850 10px/1 var(--lo-font-ui); color: var(--lo-muted); text-transform: uppercase; letter-spacing: .08em; }
+.hub__portal-title { font-size: 17px; line-height: 1.05; }
+.hub__portal-desc { color: var(--lo-ink-soft); font-size: 14px; line-height: 1.32; }
+.hub__portal-arrow { color: var(--lo-muted); font: 900 18px/1 var(--lo-font-ui); }
 .hub__deck-wrap { display: grid; gap: 16px; justify-items: center; }
 .hub__deck-stack { width: 100%; max-width: 386px; position: relative; display: grid; justify-items: center; padding-top: 18px; isolation: isolate; }
 .hub__deck-stack::before,

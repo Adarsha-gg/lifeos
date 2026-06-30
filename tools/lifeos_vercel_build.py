@@ -74,7 +74,7 @@ def build_hub(env: dict[str, str]) -> dict[str, Any]:
 
 def write_review_page() -> None:
     (PUBLIC / "review.html").write_text(
-        """<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LifeOS Review</title><style>body{font-family:system-ui;margin:0;min-height:100vh;display:grid;place-items:center;background:#07100c;color:#eaffef}main{max-width:680px;padding:32px}a{color:#58d68d;font-weight:800}</style></head><body><main><h1>LifeOS Learn</h1><p>This public build is generated from the GitHub repository on every Vercel deployment.</p><p><a href=\"/learn\">Open the learning site →</a></p></main></body></html>""",
+        """<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LifeOS Review</title><style>body{font-family:system-ui;margin:0;min-height:100vh;display:grid;place-items:center;background:#07100c;color:#eaffef}main{max-width:680px;padding:32px}a{color:#58d68d;font-weight:800}</style></head><body><main><h1>LifeOS Quest Hub</h1><p>This public build is generated from the GitHub repository on every Vercel deployment.</p><p><a href=\"/hub\">Open the Quest Hub →</a></p></main></body></html>""",
         encoding="utf-8",
     )
 
@@ -93,6 +93,7 @@ def main() -> int:
     commands = [
         [sys.executable, "tools/lifeos_paul_graham.py", "build", "--refresh", "--sleep", "0"],
         [sys.executable, "tools/lifeos_games.py", "build"],
+        [sys.executable, "tools/lifeos_arcade.py", "build"],
         [sys.executable, "tools/lifeos_skill_tree.py", "build"],
         [sys.executable, "tools/lifeos_learning_engine.py", "build"],
         [sys.executable, "tools/lifeos_lessons.py", "build"],
