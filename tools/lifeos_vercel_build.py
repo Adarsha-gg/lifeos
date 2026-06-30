@@ -97,6 +97,7 @@ def main() -> int:
         [sys.executable, "tools/lifeos_skill_tree.py", "build"],
         [sys.executable, "tools/lifeos_learning_engine.py", "build"],
         [sys.executable, "tools/lifeos_lessons.py", "build"],
+        [sys.executable, "tools/lifeos_mythic_art.py", "build"],
     ]
     results = [run(cmd, env) for cmd in commands]
 
