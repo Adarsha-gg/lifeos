@@ -1807,7 +1807,7 @@ setCat('all');
 <header class='tinderbar'><a href='/output/learn/profile.html' aria-label='Profile'>👤</a><div class='brand'>LifeOS</div><a href='/output/learn/skill-tree.html' aria-label='Knowledge graph'>⚙</a></header>
 <section class='stage' data-deck-stage>{fallback_cards}</section><section class='empty' data-empty hidden><div><h2>No cards left.</h2><p>Pick another lane or come back tomorrow.</p></div></section>
 <div class='action-dock' aria-label='Swipe actions'><button class='swipe-btn no' type='button' data-global-no aria-label='No'>No</button><button class='swipe-btn yes' type='button' data-global-yes aria-label='Read'>Read</button></div>
-<section class='mini'><h2>Explore</h2><div class='mini-rail'><a class='mini-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Graph</strong></a><a class='mini-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training</strong></a><a class='mini-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>Curriculum</strong></a>{game_cards}</div></section>
+<section class='mini'><h2>Explore</h2><div class='mini-rail'><a class='mini-card' href='/hub'><span>🏰</span><strong>Hub</strong></a><a class='mini-card' href='/output/learn/skill-tree.html'><span>🧠</span><strong>Graph</strong></a><a class='mini-card' href='/output/learn/learning-system.html'><span>⚡</span><strong>Training</strong></a><a class='mini-card' href='/output/learn/curriculum.html'><span>🗺️</span><strong>Curriculum</strong></a>{game_cards}</div></section>
 </main><script>window.LIFEOS_REC_CATALOG={rec_data};</script>{recommendation_js}</body></html>"""
 
 
