@@ -6,6 +6,8 @@ export const LS_KEYS = {
   progress: "lifeos.learning.progress.v1",
   level: "lifeos.level.lastSeen.v1",
   profile: "lifeos.profile.v1",
+  notes: "lifeos.notes.v1",
+  authUser: "lifeos.auth.user.v1",
   skipped: "lifeos.deck.skipped.v2",
   yes: "lifeos.deck.yes.v2",
 } as const;
@@ -102,6 +104,7 @@ export interface DeckLesson {
   levelFit: string;
   minutes: number;
   art: "scroll" | "compass" | "constellation" | "atom";
+  artUrl?: string;
   href: string;
 }
 
@@ -115,6 +118,7 @@ export const DECK: DeckLesson[] = [
     levelFit: "Level 2 fit",
     minutes: 12,
     art: "scroll",
+    artUrl: "/learn/art/mythic/analytical-minds-al-khwarizmi-and-algorithmic-procedure.svg",
     href: "/learn/analytical-minds-al-khwarizmi-and-algorithmic-procedure.html",
   },
   {
@@ -126,6 +130,7 @@ export const DECK: DeckLesson[] = [
     levelFit: "Level 3 fit",
     minutes: 9,
     art: "compass",
+    artUrl: "/learn/art/mythic/analytical-minds-donella-meadows-and-systems-leverage.svg",
     href: "/learn/",
   },
   {
@@ -137,6 +142,7 @@ export const DECK: DeckLesson[] = [
     levelFit: "Level 4 stretch",
     minutes: 15,
     art: "constellation",
+    artUrl: "/learn/art/mythic/analytical-minds-emmy-noether-and-symmetry.svg",
     href: "/learn/",
   },
 ];
@@ -172,6 +178,50 @@ export interface HubPortalGroup {
   kicker: string;
   portals: HubPortal[];
 }
+
+export interface PricePlan {
+  id: "monthly" | "six_months" | "annual";
+  title: string;
+  price: string;
+  cadence: string;
+  savings: string;
+  description: string;
+  envKey: string;
+  windowKey: string;
+}
+
+export const PRICE_PLANS: PricePlan[] = [
+  {
+    id: "monthly",
+    title: "Newcomer Monthly",
+    price: "$10",
+    cadence: "/ month",
+    savings: "Start now",
+    description: "For people trying the daily learning RPG for the first time.",
+    envKey: "VITE_STRIPE_MONTHLY_URL",
+    windowKey: "LIFEOS_STRIPE_MONTHLY_URL",
+  },
+  {
+    id: "six_months",
+    title: "Newcomer 6 Months",
+    price: "$50",
+    cadence: "/ 6 months",
+    savings: "Save $10",
+    description: "Commit for a season of daily quests, graph growth, and review loops.",
+    envKey: "VITE_STRIPE_SIX_MONTHS_URL",
+    windowKey: "LIFEOS_STRIPE_SIX_MONTHS_URL",
+  },
+  {
+    id: "annual",
+    title: "Newcomer Annual",
+    price: "$90",
+    cadence: "/ year",
+    savings: "Best value",
+    description: "A full year of morning quests and personal knowledge graph progress.",
+    envKey: "VITE_STRIPE_ANNUAL_URL",
+    windowKey: "LIFEOS_STRIPE_ANNUAL_URL",
+  },
+];
 
 export const HUB_PORTALS: HubPortalGroup[] = [
   {
