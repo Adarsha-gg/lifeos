@@ -22,3 +22,11 @@ PR #40 was merged to main and live-verified on Vercel at `https://lifeos-review.
 ### 2026-06-30 08:34:01 - Milestone
 
 User objected to the Hub being presented as `/hub` instead of the root `lifeos-review` URL. Fixed the deployment routing plan: remove the Vercel root redirect to `/hub`, copy the built Hub entry to `public/index.html`, keep `/hub` only as a backwards-compatible alias, and update `/review` to link to `/`. Local browser validation confirms `/` stays on `/` and renders the same uncluttered Quest/Deck Hub.
+
+### 2026-06-30 10:17:57 - Milestone
+
+Implemented the first real generated lesson-art batch for the primary Quest Hub deck. Added eight optimized 1024×768 JPG assets under assets/lesson-art/generated, updated the static build pipeline to copy generated assets into public learn output, constrained the hub to request generated art only for IDs that actually have raster assets, and kept SVG fallback behavior for all other lessons. Validation: ran tools/lifeos_vercel_build.py successfully, confirmed the graph-ranked top eight cards all match the generated asset IDs, verified root / loads /learn/art/generated/analytical-minds-descartes-and-coordinate-method.jpg at 1024×768 with only quest/deck sections and no horizontal overflow, and inspected C:/tmp/lifeos-real-generated-art-root.png.
+
+### 2026-06-30 10:27:42 - Milestone
+
+Applied the clipboard-reference pixel typography to the Quest Hub via the design-system font tokens. Identified Silkscreen as the closer free web-font match than Press Start 2P for the submitted form-style reference, replaced display/UI/serif/mono LifeOS font tokens with Silkscreen plus monospace fallback, rebuilt the static site, and verified root / renders Silkscreen, still loads the generated JPG deck art, preserves only quest/deck sections, and has no horizontal overflow. Screenshot: C:/tmp/lifeos-silkscreen-font-root.png.

@@ -20,6 +20,8 @@ VAULT = Path(os.environ.get("LIFEOS_VAULT", APP_ROOT / "public")).resolve()
 LEARN_OUT = VAULT / "output" / "learn"
 GRAPH_PATH = LEARN_OUT / "knowledge-graph.json"
 ART_DIR = LEARN_OUT / "art" / "mythic"
+GENERATED_SRC = APP_ROOT / "assets" / "lesson-art" / "generated"
+GENERATED_OUT = LEARN_OUT / "art" / "generated"
 MANIFEST_PATH = LEARN_OUT / "art" / "mythic-art-manifest.json"
 
 PALETTES: dict[str, tuple[str, str, str, str, str]] = {
@@ -171,6 +173,8 @@ def build() -> int:
         filename = slug_file(node_id) + ".svg"
         svg_path = ART_DIR / filename
         svg_path.write_text(svg_for(node), encoding="utf-8")
+        generated_name = slug_file(node_id) + ".jpg"
+        generated_src = GENERATED_SRC / generated_name
         records.append({
             "id": node_id,
             "title": node.get("title"),
@@ -178,19 +182,29 @@ def build() -> int:
             "kind": node.get("kind"),
             "source_url": node.get("url"),
             "fallback_svg": f"/learn/art/mythic/{filename}",
-            "generated_target": f"/learn/art/generated/{slug_file(node_id)}.webp",
+            "generated_target": f"/learn/art/generated/{generated_name}",
+            "generated_available": generated_src.exists(),
             "prompt": prompt_for(node),
         })
     manifest = {
         "version": 1,
         "count": len(records),
         "style": "premium Fable / mythic parchment / storybook learning-card hero",
-        "note": "Fallback SVGs are deterministic. Feed prompts to an image generator and write optimized webp files to generated_target when available.",
+        "note": "Fallback SVGs are deterministic. Feed prompts to an image generator and write optimized JPG files to generated_target when available.",
         "records": records,
     }
+    if GENERATED_OUT.exists():
+        for old in GENERATED_OUT.glob("*"):
+            if old.is_file():
+                old.unlink()
+    GENERATED_OUT.mkdir(parents=True, exist_ok=True)
+    if GENERATED_SRC.exists():
+        for pattern in ("*.jpg", "*.jpeg", "*.png", "*.webp"):
+            for src in GENERATED_SRC.glob(pattern):
+                (GENERATED_OUT / src.name).write_bytes(src.read_bytes())
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(json.dumps({"ok": True, "count": len(records), "dir": str(ART_DIR), "manifest": str(MANIFEST_PATH)}, indent=2), flush=True)
+    print(json.dumps({"ok": True, "count": len(records), "generated": sum(1 for r in records if r.get("generated_available")), "dir": str(ART_DIR), "manifest": str(MANIFEST_PATH)}, indent=2), flush=True)
     return 0
 
 
