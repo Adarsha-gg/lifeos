@@ -118,7 +118,7 @@ export const DECK: DeckLesson[] = [
     levelFit: "Level 2 fit",
     minutes: 12,
     art: "scroll",
-    artUrl: "/learn/art/mythic/analytical-minds-al-khwarizmi-and-algorithmic-procedure.svg",
+    artUrl: "/learn/art/generated/analytical-minds-al-khwarizmi-and-algorithmic-procedure.jpg",
     href: "/learn/analytical-minds-al-khwarizmi-and-algorithmic-procedure.html",
   },
   {
@@ -130,7 +130,7 @@ export const DECK: DeckLesson[] = [
     levelFit: "Level 3 fit",
     minutes: 9,
     art: "compass",
-    artUrl: "/learn/art/mythic/analytical-minds-donella-meadows-and-systems-leverage.svg",
+    artUrl: "/learn/art/mythic/systems-donella-meadows-and-leverage-points.svg",
     href: "/learn/",
   },
   {
@@ -142,7 +142,7 @@ export const DECK: DeckLesson[] = [
     levelFit: "Level 4 stretch",
     minutes: 15,
     art: "constellation",
-    artUrl: "/learn/art/mythic/analytical-minds-emmy-noether-and-symmetry.svg",
+    artUrl: "/learn/art/mythic/cosmology-emmy-noether-and-symmetry.svg",
     href: "/learn/",
   },
 ];

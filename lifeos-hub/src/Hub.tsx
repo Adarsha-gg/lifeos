@@ -185,8 +185,27 @@ function levelFitFor(node: GraphNode) {
   return "Level 2 fit";
 }
 
+const GENERATED_ART_IDS = new Set<string>([
+  "analytical-minds-al-khwarizmi-and-algorithmic-procedure",
+  "analytical-minds-alan-turing-and-computability",
+  "analytical-minds-descartes-and-coordinate-method",
+  "analytical-minds-einstein-and-principle-reasoning",
+  "analytical-minds-elinor-ostrom-and-commons-governance",
+  "analytical-minds-euclid-and-axiomatic-structure",
+  "analytical-minds-judea-pearl-and-causal-graphs",
+  "analytical-minds-maxwell-and-field-equations",
+]);
+
 function mythicArtUrl(id: string) {
   return `/learn/art/mythic/${encodeURIComponent(id)}.svg`;
+}
+
+function generatedArtUrl(id: string) {
+  return `/learn/art/generated/${encodeURIComponent(id)}.jpg`;
+}
+
+function artUrlForLesson(id: string) {
+  return GENERATED_ART_IDS.has(id) ? generatedArtUrl(id) : mythicArtUrl(id);
 }
 
 function toDeckLesson(node: GraphNode, domains?: { id: string; name?: string }[]): DeckLesson {
@@ -198,7 +217,7 @@ function toDeckLesson(node: GraphNode, domains?: { id: string; name?: string }[]
     levelFit: levelFitFor(node),
     minutes: Math.max(8, Math.round((Number(node.xp) || 90) / 6)),
     art: artForDomain(node.domain),
-    artUrl: mythicArtUrl(node.id),
+    artUrl: artUrlForLesson(node.id),
     href: node.url || "/learn/",
   };
 }
@@ -331,7 +350,14 @@ export function Hub() {
       src={lesson.artUrl}
       alt=""
       loading="eager"
-      onError={(event) => { event.currentTarget.style.display = "none"; }}
+      onError={(event) => {
+        const fallback = mythicArtUrl(lesson.id);
+        if (!event.currentTarget.src.endsWith(fallback)) {
+          event.currentTarget.src = fallback;
+          return;
+        }
+        event.currentTarget.style.display = "none";
+      }}
     />
   ) : lesson.art;
   const swipeStyle = {
