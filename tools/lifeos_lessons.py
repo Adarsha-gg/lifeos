@@ -1050,102 +1050,6 @@ update();
 """
 
 
-HIGHLIGHT_JS = r"""
-(function(){
-const root=document.querySelector('[data-highlight-root]');
-const node=window.LIFEOS_NODE||{};
-if(!root)return;
-const key='lifeos.highlights.v1.'+(node.id||location.pathname);
-const bar=document.createElement('div');
-bar.className='hlbar';
-bar.innerHTML='<button type="button" data-hl-add>Highlight</button><button type="button" data-hl-clear>Clear</button>';
-document.body.appendChild(bar);
-let savedRange=null;
-function hide(){bar.classList.remove('show')}
-function usableSelection(){
- const sel=window.getSelection();
- if(!sel||sel.isCollapsed||sel.rangeCount===0)return null;
- const range=sel.getRangeAt(0);
- if(!root.contains(range.commonAncestorContainer))return null;
- const text=String(sel).trim();
- if(text.length<2)return null;
- return range;
-}
-function place(){
- const range=usableSelection();
- if(!range){hide();return}
- savedRange=range.cloneRange();
- const rect=range.getBoundingClientRect();
- if(!rect||(!rect.width&&!rect.height)){hide();return}
- bar.style.left=Math.max(10,Math.min(window.innerWidth-170,rect.left+rect.width/2-70))+'px';
- bar.style.top=Math.max(10,rect.top-46)+'px';
- bar.classList.add('show');
-}
-function skipNode(n){
- const p=n.parentElement;
- return !p||p.closest('mark.user-highlight,button,a,script,style,.hlbar');
-}
-function textNodes(){
- const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){return skipNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}});
- const out=[];let n;while((n=walker.nextNode()))out.push(n);return out;
-}
-function unwrap(mark){
- const parent=mark.parentNode;
- while(mark.firstChild)parent.insertBefore(mark.firstChild,mark);
- parent.removeChild(mark);
- parent.normalize();
-}
-function save(){
- const items=[...root.querySelectorAll('mark.user-highlight')].map(m=>m.textContent.trim()).filter(Boolean).slice(0,200);
- localStorage.setItem(key,JSON.stringify(items));
-}
-function highlightRange(range){
- const mark=document.createElement('mark');
- mark.className='user-highlight';
- mark.dataset.userHighlight='1';
- mark.appendChild(range.extractContents());
- range.insertNode(mark);
- mark.normalize();
- save();
-}
-function restoreOne(text){
- if(!text||text.length<2)return false;
- for(const n of textNodes()){
-  const i=n.nodeValue.indexOf(text);
-  if(i<0)continue;
-  const r=document.createRange();
-  r.setStart(n,i);r.setEnd(n,i+text.length);
-  highlightRange(r);
-  return true;
- }
- return false;
-}
-function restore(){
- let items=[];try{items=JSON.parse(localStorage.getItem(key)||'[]')}catch{}
- if(Array.isArray(items))items.forEach(restoreOne);
-}
-bar.querySelector('[data-hl-add]').addEventListener('click',()=>{
- if(!savedRange)return hide();
- try{highlightRange(savedRange)}catch(e){}
- window.getSelection()?.removeAllRanges();
- hide();
-});
-bar.querySelector('[data-hl-clear]').addEventListener('click',()=>{
- root.querySelectorAll('mark.user-highlight').forEach(unwrap);
- localStorage.removeItem(key);
- window.getSelection()?.removeAllRanges();
- hide();
-});
-root.addEventListener('mouseup',()=>setTimeout(place,0));
-root.addEventListener('touchend',()=>setTimeout(place,80),{passive:true});
-document.addEventListener('selectionchange',()=>{if(!usableSelection())hide()});
-window.addEventListener('scroll',hide,{passive:true});
-restore();
-})();
-"""
-
-
-
 def _source_entries(lesson: dict[str, Any]) -> list[tuple[str, str, str]]:
     """Return unique (label, url, note) entries for the bottom source trail."""
     entries: list[tuple[str, str, str]] = []
@@ -1217,8 +1121,7 @@ def _reading_note_html(lesson: dict[str, Any]) -> str:
     return (
         "<section class='readingNote'><h3>How to read this page</h3>"
         "<p>Read it as a set of claims, not as sacred text. First get the model. Then check the source trail. "
-        "Select any sentence to highlight it; use Clear to remove saved highlights for this page. "
-        "Finally, write one objection, one application, and one uncertainty you would need to verify before teaching it to someone else.</p>"
+        "Write one objection, one application, and one uncertainty you would need to verify before teaching it to someone else.</p>"
         "</section>"
     )
 
@@ -1438,9 +1341,6 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 .completebar b{{display:block;font:800 17px/1.2 system-ui}}.completebar span{{display:block;color:var(--muted);font:650 13px/1.35 system-ui;margin-top:4px}}
 .completebar button{{border:0;border-radius:10px;background:var(--fg);color:var(--bg);font:900 14px/1 system-ui;padding:12px 14px;cursor:pointer;white-space:nowrap}}
 .completebar button:disabled{{opacity:.65;cursor:default}}
-.user-highlight{{background:#ffe66d;color:#151719;border-radius:3px;padding:0 .08em;box-decoration-break:clone;-webkit-box-decoration-break:clone}}
-.hlbar{{position:fixed;z-index:99;display:none;gap:6px;background:#151719;color:#fff;border:1px solid #000;border-radius:999px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.22)}}
-.hlbar.show{{display:flex}}.hlbar button{{border:0;border-radius:999px;background:#fff;color:#151719;font:850 13px/1 system-ui;padding:9px 12px;cursor:pointer}}.hlbar [data-hl-clear]{{background:#2b2b2b;color:#fff}}
 .extrasDrop{{border:1px solid var(--line);border-radius:14px;background:var(--card);margin:28px 0;overflow:hidden}}
 .extrasDrop summary{{cursor:pointer;list-style:none;padding:16px 18px;font:850 15px/1.2 system-ui;color:var(--fg);display:flex;justify-content:space-between;gap:12px;align-items:center}}
 .extrasDrop summary::-webkit-details-marker{{display:none}}
@@ -1467,7 +1367,7 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 :root{{--accent:{accent}}}</style></head>
 <body><div class='wrap'>
 <div class='topbar'><a href='/learn'>&larr; Today's lessons</a><a href='/output/learn/skill-tree.html'>Knowledge graph</a><a href='/output/learn/learning-system.html'>Training queue</a><span>{esc(day)}</span></div>
-<main class='lessonBody' data-highlight-root>
+<main class='lessonBody'>
 {_hero_html(lesson)}
 <div class='kicker'>{kicker}</div>
 <h1>{esc(lesson['title'])}</h1>
@@ -1493,7 +1393,7 @@ def render_lesson(lesson: dict[str, Any], day: str) -> str:
 <p>Stuck or curious? Ask your LifeOS agent to go deeper on anything here — it's your teacher.</p>
 </div>
 </div>
-<script>window.LIFEOS_NODE={json.dumps(progress_node)};</script><script>{PROGRESS_JS}</script><script>{HIGHLIGHT_JS}</script><script>{BASE_JS}</script></body></html>"""
+<script>window.LIFEOS_NODE={json.dumps(progress_node)};</script><script>{PROGRESS_JS}</script><script>{BASE_JS}</script></body></html>"""
 
 
 def _rotate_pick(pool: list[dict[str, Any]], today: date, salt: int = 0) -> dict[str, Any] | None:
