@@ -18,3 +18,7 @@ Addressed reviewer findings: corrected two seeded fallback art URLs to match gen
 ### 2026-06-30 03:17:07 - Milestone
 
 PR #40 was merged to main and live-verified on Vercel at `https://lifeos-review.vercel.app/hub?v=40`. Live checks passed: Hub main sections are exactly `quest` and `deck`, morning agent brief has three graph-ranked picks, deck controls remain only No/Read, top-right account panel contains Google sign-in, phone handoff, export, completed quests, mini graph, notes, and newcomer pricing ($10/$50/$90), mythic art loads from `/learn/art/mythic/...`, and the live art manifest has 594 records.
+
+### 2026-06-30 08:34:01 - Milestone
+
+User objected to the Hub being presented as `/hub` instead of the root `lifeos-review` URL. Fixed the deployment routing plan: remove the Vercel root redirect to `/hub`, copy the built Hub entry to `public/index.html`, keep `/hub` only as a backwards-compatible alias, and update `/review` to link to `/`. Local browser validation confirms `/` stays on `/` and renders the same uncluttered Quest/Deck Hub.
