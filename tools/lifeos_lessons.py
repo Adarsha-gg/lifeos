@@ -725,7 +725,7 @@ BASE_CSS = """
 *{box-sizing:border-box}
 html,body{width:100%;max-width:100%;overflow-x:hidden}
 body{margin:0;font-family:Georgia,'Iowan Old Style',serif;background:var(--bg);color:var(--fg);line-height:1.72;-webkit-text-size-adjust:100%}
-.wrap{max-width:720px;width:100%;margin:0 auto;padding:0 20px 110px;overflow:hidden}
+.wrap{max-width:720px;width:100%;margin:0 auto;padding:0 20px 110px;overflow-x:clip}
 .topbar{position:sticky;top:0;background:rgba(11,15,13,.92);backdrop-filter:blur(8px);display:flex;justify-content:space-between;align-items:center;padding:12px 0;font:600 13px/1 system-ui;z-index:9}
 .topbar a{color:var(--muted);text-decoration:none}
 .herowrap{display:none}

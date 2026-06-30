@@ -1,7 +1,7 @@
 /* Quest Hub layout — single scrolling page + hamburger side drawer.
    Relies on the design-system tokens (loaded via lifeos-ds). */
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
 body { background: var(--lo-paper); }
 
 .hub {
@@ -107,14 +107,28 @@ body { background: var(--lo-paper); }
 
 /* --- main scroll --- */
 .hub__main {
+  width: 100%;
   max-width: 620px;
   margin: 0 auto;
-  padding: 18px 16px 96px;
+  padding: 18px clamp(10px, 4vw, 16px) 96px;
   display: grid;
   gap: 26px;
 }
-.hub__section { scroll-margin-top: 72px; display: grid; gap: 12px; }
-.hub__section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hub__main > *,
+.hub__section,
+.hub__section > *,
+.hub .lo-prh,
+.hub .lo-mainquest,
+.hub .lo-graph,
+.hub .lo-game,
+.hub .lo-curr,
+.hub .lo-mem,
+.hub .lo-teach {
+  min-width: 0;
+  max-width: 100%;
+}
+.hub__section { scroll-margin-top: 72px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.hub__section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .hub__section-title { font-family: var(--lo-font-display); font-weight: 600; font-size: 22px; margin: 0; }
 .hub__section-link {
   background: none; border: none; cursor: pointer;
@@ -149,11 +163,12 @@ body { background: var(--lo-paper); }
   margin-bottom: 12px;
 }
 .hub__portal-group-title { margin: 4px 0 0; font-size: 20px; }
-.hub__portal-grid { display: grid; gap: 9px; }
+.hub__portal-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
 .hub__portal-card {
   width: 100%;
+  min-width: 0;
   display: grid;
-  grid-template-columns: 46px 1fr 18px;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   text-align: left;
@@ -184,8 +199,8 @@ body { background: var(--lo-paper); }
 .hub__portal-title { font-size: 17px; line-height: 1.05; }
 .hub__portal-desc { color: var(--lo-ink-soft); font-size: 14px; line-height: 1.32; }
 .hub__portal-arrow { color: var(--lo-muted); font: 900 18px/1 var(--lo-font-ui); }
-.hub__deck-wrap { display: grid; gap: 16px; justify-items: center; }
-.hub__deck-stack { width: 100%; max-width: 386px; position: relative; display: grid; justify-items: center; padding-top: 18px; isolation: isolate; }
+.hub__deck-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; justify-items: center; }
+.hub__deck-stack { width: 100%; max-width: min(100%, 386px); position: relative; display: grid; justify-items: center; padding-top: 18px; isolation: isolate; }
 .hub__deck-stack::before,
 .hub__deck-stack::after {
   content: "";
@@ -201,7 +216,7 @@ body { background: var(--lo-paper); }
   z-index: -1;
 }
 .hub__deck-stack::after { left: 14%; right: 14%; top: 0; bottom: 28px; opacity: .64; }
-.hub__deck-stack .lo-deck { z-index: 1; }
+.hub__deck-stack .lo-deck { z-index: 1; max-width: 100%; }
 .hub__swipe-card {
   position: relative;
   z-index: 1;
@@ -289,6 +304,40 @@ body { background: var(--lo-paper); }
   font: 700 13px/1.45 var(--lo-font-ui);
 }
 
-@media (min-width: 680px) {
-  .hub__games { grid-template-columns: 1fr; }
+.hub .lo-curr__shelf { min-width: 0; max-width: 100%; }
+
+@media (max-width: 360px) {
+  .hub__topbar { padding: 10px; }
+  .hub__burger { width: 38px; height: 38px; }
+  .hub__wordmark { font-size: 18px; }
+  .hub__portal-card { grid-template-columns: 40px minmax(0, 1fr); }
+  .hub__portal-arrow { display: none; }
+  .hub__portal-glyph { width: 40px; height: 40px; }
+  .hub .lo-game { flex-direction: column; }
+  .hub .lo-game__tile { width: 100%; min-height: 72px; }
+}
+
+@media (min-width: 720px) {
+  .hub__main { max-width: 760px; }
+  .hub__portal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hub__games { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1040px) {
+  .hub__main {
+    max-width: 1120px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 28px;
+  }
+  .hub__section { grid-column: span 2; }
+  #deck,
+  #map,
+  #games,
+  #library,
+  #memory,
+  #mentor { grid-column: span 1; }
+  #portals { grid-column: 1 / -1; }
+  #portals .hub__portal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #games .hub__games { grid-template-columns: minmax(0, 1fr); }
 }
