@@ -31,6 +31,7 @@ type MiniGraph = { nodeCount: number; masteredCount: number; nodes: GraphPreview
 type GraphNode = { id: string; title?: string; domain?: string; kind?: string; url?: string; summary?: string; difficulty?: string; xp?: number; x?: number; y?: number };
 type GraphEdge = { from: string; to: string };
 type AuthUser = { name?: string; email?: string; picture?: string; provider?: "google" | "local"; signedInAt?: string };
+type GeneratedArtManifest = { records?: { id?: string; generated_available?: boolean }[] };
 
 function go(id: string, close: () => void) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -185,7 +186,7 @@ function levelFitFor(node: GraphNode) {
   return "Level 2 fit";
 }
 
-const GENERATED_ART_IDS = new Set<string>([
+const SEEDED_GENERATED_ART_IDS = new Set<string>([
   "analytical-minds-al-khwarizmi-and-algorithmic-procedure",
   "analytical-minds-alan-turing-and-computability",
   "analytical-minds-descartes-and-coordinate-method",
@@ -204,11 +205,36 @@ function generatedArtUrl(id: string) {
   return `/learn/art/generated/${encodeURIComponent(id)}.jpg`;
 }
 
-function artUrlForLesson(id: string) {
-  return GENERATED_ART_IDS.has(id) ? generatedArtUrl(id) : mythicArtUrl(id);
+function artUrlForLesson(id: string, generatedArtIds: Set<string>) {
+  return generatedArtIds.has(id) ? generatedArtUrl(id) : mythicArtUrl(id);
 }
 
-function toDeckLesson(node: GraphNode, domains?: { id: string; name?: string }[]): DeckLesson {
+function useGeneratedArtIds() {
+  const [ids, setIds] = useState(() => new Set(SEEDED_GENERATED_ART_IDS));
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        let response = await fetch("/learn/art/mythic-art-manifest.json", { cache: "no-store" });
+        if (!response.ok) response = await fetch("/output/learn/art/mythic-art-manifest.json", { cache: "no-store" });
+        if (!response.ok) return;
+        const manifest = await response.json() as GeneratedArtManifest;
+        const available = new Set(SEEDED_GENERATED_ART_IDS);
+        for (const record of manifest.records || []) {
+          if (record.generated_available && record.id) available.add(record.id);
+        }
+        if (!cancelled) setIds(available);
+      } catch {
+        if (!cancelled) setIds(new Set(SEEDED_GENERATED_ART_IDS));
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+  return ids;
+}
+
+function toDeckLesson(node: GraphNode, domains: { id: string; name?: string }[] | undefined, generatedArtIds: Set<string>): DeckLesson {
   return {
     id: node.id,
     title: node.title || shortLabel(node.id),
@@ -217,12 +243,12 @@ function toDeckLesson(node: GraphNode, domains?: { id: string; name?: string }[]
     levelFit: levelFitFor(node),
     minutes: Math.max(8, Math.round((Number(node.xp) || 90) / 6)),
     art: artForDomain(node.domain),
-    artUrl: artUrlForLesson(node.id),
+    artUrl: artUrlForLesson(node.id, generatedArtIds),
     href: node.url || "/learn/",
   };
 }
 
-function useHubDeck(fallback: DeckLesson[]) {
+function useHubDeck(fallback: DeckLesson[], generatedArtIds: Set<string>) {
   const [lessons, setLessons] = useState<DeckLesson[]>(fallback);
   useEffect(() => {
     let cancelled = false;
@@ -253,7 +279,7 @@ function useHubDeck(fallback: DeckLesson[]) {
           })
           .sort((a, b) => b.score - a.score)
           .slice(0, 8)
-          .map(({ node }) => toDeckLesson(node, graph.domains));
+          .map(({ node }) => toDeckLesson(node, graph.domains, generatedArtIds));
         if (!cancelled && ranked.length) setLessons(ranked);
       } catch {
         if (!cancelled) setLessons(fallback);
@@ -262,7 +288,7 @@ function useHubDeck(fallback: DeckLesson[]) {
     load();
     window.addEventListener("storage", load);
     return () => { cancelled = true; window.removeEventListener("storage", load); };
-  }, [fallback]);
+  }, [fallback, generatedArtIds]);
   return lessons;
 }
 
@@ -324,7 +350,8 @@ export function Hub() {
   const [notice, setNotice] = useState("");
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const deck = useHubDeck(DECK);
+  const generatedArtIds = useGeneratedArtIds();
+  const deck = useHubDeck(DECK, generatedArtIds);
   const visibleDeck = useMemo(() => deck.filter((item) => !dismissed.has(item.id)), [deck, dismissed]);
   const dailyPicks = useMemo(() => visibleDeck.slice(0, 3), [visibleDeck]);
   const completed = useMemo(() => {
