@@ -30,3 +30,7 @@ Implemented the first real generated lesson-art batch for the primary Quest Hub 
 ### 2026-06-30 10:27:42 - Milestone
 
 Applied the clipboard-reference pixel typography to the Quest Hub via the design-system font tokens. Identified Silkscreen as the closer free web-font match than Press Start 2P for the submitted form-style reference, replaced display/UI/serif/mono LifeOS font tokens with Silkscreen plus monospace fallback, rebuilt the static site, and verified root / renders Silkscreen, still loads the generated JPG deck art, preserves only quest/deck sections, and has no horizontal overflow. Screenshot: C:/tmp/lifeos-silkscreen-font-root.png.
+
+### 2026-06-30 11:10:22 - Milestone
+
+Reverted the pixel-font experiment after live visual review and fixed generated art visibility in the separate /learn deck. Restored the original LifeOS serif/system font tokens, added generated-art URL support to tools/lifeos_lessons.py, taught the /learn Tinder-style deck to render real generated JPGs over its CSS fallback art, and boosted generated-art cards in the /learn recommendation ranking so the new assets are visible immediately. Validation: rebuilt with tools/lifeos_vercel_build.py, verified root / no longer uses Silkscreen and still loads generated art, verified /learn/ first card loads /learn/art/generated/analytical-minds-al-khwarizmi-and-algorithmic-procedure.jpg at 1024×768 with no overflow, inspected C:/tmp/lifeos-reverted-font-root.png and C:/tmp/lifeos-learn-generated-art-local.png.
