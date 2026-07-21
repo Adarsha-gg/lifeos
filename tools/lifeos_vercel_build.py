@@ -84,6 +84,19 @@ def write_root_hub_entry() -> None:
     hub_index = HUB_PUBLIC / "index.html"
     if hub_index.exists():
         shutil.copy2(hub_index, PUBLIC / "index.html")
+        # PWA assets must be reachable at the site root (start_url / scope "/").
+        # The hub build emits them under /hub; mirror them to the root so the app
+        # is installable when opened at "/".
+        for name in ("manifest.webmanifest", "sw.js"):
+            src = HUB_PUBLIC / name
+            if src.exists():
+                shutil.copy2(src, PUBLIC / name)
+        hub_icons = HUB_PUBLIC / "icons"
+        if hub_icons.exists():
+            root_icons = PUBLIC / "icons"
+            if root_icons.exists():
+                shutil.rmtree(root_icons)
+            shutil.copytree(hub_icons, root_icons)
         return
     (PUBLIC / "index.html").write_text(
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"

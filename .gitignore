@@ -4,7 +4,7 @@ __pycache__/
 .cache/
 loop/
 private/
-public/
+/public/
 output/
 data/
 *.log
